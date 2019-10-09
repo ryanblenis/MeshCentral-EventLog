@@ -84,9 +84,7 @@ module.exports.eventlog = function (parent) {
             switch (k) {
               case 'TimeGenerated': {
                 v = v.match(/\d+/g);
-                console.log('as num', Number(v));
                 v = new Date(Number(v)).toLocaleDateString();
-                console.log(v);
               }
               default: {
                 str += '<span title="'+v+'">'+v+'</span>';
@@ -107,7 +105,6 @@ module.exports.eventlog = function (parent) {
         if (pluginHandler.eventlog.webRtcActive == true) { str += ', WebRTC'; }
         switch (state) {
             case 0:
-                console.log('onRemoteEventLogStateChange state is ', state);
                 pluginHandler.eventlog.livelog = null;
 
                 if (pluginHandler.eventlog.livelog != null) { 
@@ -121,7 +118,6 @@ module.exports.eventlog = function (parent) {
                 }
                 break;
             default:
-                console.log('Unknown onRemoteEventLogStateChange state', state);
                 break;
         }
     }
@@ -147,9 +143,6 @@ module.exports.eventlog = function (parent) {
           pluginHandler.eventlog.livelog.onStateChanged = pluginHandler.eventlog.onRemoteEventLogStateChange;
           pluginHandler.eventlog.livelog.onConsoleMessageChange = function () {
               if (pluginHandler.eventlog.livelog.consoleMessage) {
-                  /* QH('p13FilesConsoleMsg', EscapeHtml(files.consoleMessage).split('\n').join('<br />'));
-                  QV('p13FilesConsoleMsg', true);
-                  p13FilesConsoleMsgTimer = setTimeout(p13clearConsoleMsg, 8000);*/
                   console.log('console message available. ', pluginHandler.eventlog.livelog.consoleMessage)
               }
           }

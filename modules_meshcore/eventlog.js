@@ -5,12 +5,6 @@ var promise = require('promise');
 function consoleaction(args, rights, sessionid, parent) {
         
         var wsconnection = false;
-        /*var fs2 = require('fs');
-        var logStream2 = fs2.createWriteStream('log.txt', {'flags': 'a'});
-        // use {'flags': 'a'} to append and {'flags': 'w'} to erase and write a new file
-        logStream2.write('\nargs are '+ typeof args);
-        logStream2.write('\narg1 is '+args['_'][1]);
-        logStream2.end('\n');*/
         
         if (typeof args['_'] == 'undefined') {
           args['_'] = [];
