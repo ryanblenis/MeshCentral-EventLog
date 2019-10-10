@@ -15,16 +15,18 @@ function consoleaction(args, rights, sessionid, parent) {
           wsconnection = true;
         }
         
+        if (process.platform != 'win32') {
+          if (wsconnection) {
+            parent.write(new Buffer(JSON.stringify({ctrlChannel: "102938", type: "close"})));
+          }
+          return "Eventlog is only available on Windows endpoints.";
+        }
+        
         var fnname = args['_'][1];
         mesh = parent;
-            
+        
         switch (fnname) {
           case 'getlog':
-          
-            if (process.platform != 'win32') {
-              return "Eventlog is only available on Windows endpoints.";
-            }
-            
             var ret = {};
 
             var data, fromLog = 'Application', num = 10, entryType = 'Error,Warning', convertToJson = true;
@@ -46,7 +48,7 @@ function consoleaction(args, rights, sessionid, parent) {
               convertToJsonText = " | convertTo-JSON"
             }
             
-            ret.child = require('child_process').execFile("C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",["powershell.exe", "-command \"Get-EventLog -EntryType "+entryType+" -LogName "+fromLog+" -Newest "+num+" | Select-Object EntryType, Category, EventID, Message, Source, TimeGenerated "+convertToJsonText+"\""]);
+            ret.child = require('child_process').execFile("C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",["powershell.exe", "-command \"Get-EventLog -EntryType "+entryType+" -LogName "+fromLog+" -Newest "+num+" | Select-Object TimeGenerated, EntryType, EventID, Message, Source, Category "+convertToJsonText+"\""]);
             //child.waitExit();
             ret.child.stdout.str = ''; ret.child.stdout.on('data', function (c) { this.str += c.toString(); });
             ret.child.stderr.str = ''; ret.child.stderr.on('data', function (c) { this.str += c.toString(); });
@@ -72,12 +74,6 @@ function consoleaction(args, rights, sessionid, parent) {
               return "Getting logs. Please wait...";
           break; 
           case 'sendlog':
-            //var user = require('user-sessions').getUsername(require('user-sessions').consoleUid());
-            //child = require('child_process').execFile("powershell.exe");
-            if (process.platform != 'win32') {
-              return "Eventlog is only available on Windows endpoints.";
-            }
-            
             var ret = {};
             
             var data, fromLog = 'Application', num = 10, entryType = 'Error,Warning';
@@ -111,7 +107,7 @@ function consoleaction(args, rights, sessionid, parent) {
                 
             });
             
-              return "Sending logs.";
+            return "Sending logs.";
           break; 
         }
 };

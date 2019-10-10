@@ -57,6 +57,11 @@ module.exports.eventlog = function (parent) {
     // called when a new plugin message is received on the front end
     obj.fe_on_message = function(server, message) {
       var data = JSON.parse(message);
+      if (data.type == 'close') {
+        pluginHandler.eventlog.livelog.Stop();
+        pluginHandler.eventlog.livelog = null;
+        return;
+      }
       var str = '';
       for (var i in data) {
         str = '';
@@ -70,34 +75,42 @@ module.exports.eventlog = function (parent) {
         float:left;
         padding: 2px;
         margin: 0;
-        background: white;
         display: inline-block;
       }
     #pluginEventLog > div > div {
           padding: 2px;
           display: inline-block;
     }
+     #pluginEventLog > div > div:nth-child(odd) {
+          background-color: #CCC;
+    }
     </style>`;
+    var eventTypes = {1: 'Error', 2: 'Warning', 4: 'Info', 8: 'SuccessAudit', 16: 'FailureAudit'};
+    
         for (const e of data[i]) {
           str += '<div>';
           for (let [k, v] of Object.entries(e)) {
             switch (k) {
+              case 'EntryType': {
+                  v = eventTypes[v];
+              break;
+              }
               case 'TimeGenerated': {
                 v = v.match(/\d+/g);
-                v = new Date(Number(v)).toLocaleDateString();
-              }
-              default: {
-                str += '<span title="'+v+'">'+v+'</span>';
+                v = new Date(Number(v)).toLocaleDateString() +' '+ new Date(Number(v)).toLocaleTimeString();
                 break;
               }
+              default: { break; }
             }
+            str += '<span title="'+v+'">'+v+'</span>';
           }
           str += '</div>';
         }
         str += '</div>';
         QH('pluginEventLog', str);
       }
-      
+      pluginHandler.eventlog.livelog.Stop();
+      pluginHandler.eventlog.livelog = null;
     };
     
     obj.onRemoteEventLogStateChange = function(xdata, state) {
@@ -105,8 +118,6 @@ module.exports.eventlog = function (parent) {
         if (pluginHandler.eventlog.webRtcActive == true) { str += ', WebRTC'; }
         switch (state) {
             case 0:
-                pluginHandler.eventlog.livelog = null;
-
                 if (pluginHandler.eventlog.livelog != null) { 
                   pluginHandler.eventlog.livelog.Stop(); 
                   pluginHandler.eventlog.livelog = null; 
@@ -118,7 +129,8 @@ module.exports.eventlog = function (parent) {
                 }
                 break;
             default:
-                break;
+                //console.log('unknown state change', state);
+            break;
         }
     }
     
