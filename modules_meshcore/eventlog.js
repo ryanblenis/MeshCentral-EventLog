@@ -93,7 +93,7 @@ var capturePeriodicEventLog = function() {
     mesh.SendCommand({ "action": "plugin", "plugin": "eventlog", "pluginaction": "gatherlogs", "data": 'testing here'});
 };
 
-if (periodicEventLogTimer == null) { periodicEventLogTimer = setInterval(capturePeriodicEventLog, 1*60*1000); } // 1 minute(s)
+//if (periodicEventLogTimer == null) { periodicEventLogTimer = setInterval(capturePeriodicEventLog, 1*60*1000); } // 1 minute(s)
 
 function consoleaction(args, rights, sessionid, parent) {
         isWsconnection = false;

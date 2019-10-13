@@ -53,7 +53,7 @@ module.exports.eventlog = function (parent) {
         var x = Q('eventlogentry').querySelectorAll(".eventLogLogType");
         
         if (x.length)
-        for (const i in Object.values(x)) { console.log('i here', x[i]);
+        for (const i in Object.values(x)) {
             if (!x[i].classList.contains('logType'+which)) {
                 x[i].style.display = 'none';
             } else {
@@ -240,8 +240,8 @@ module.exports.eventlog = function (parent) {
           break;
         }
         case 'gatherlogs': { // save logs to server db
-          //console.log('sending logs via server hit', JSON.stringify(command));
-          //var db = require (__dirname + '/db.js').CreateDB(grandparent.parent);
+          console.log('sending logs via server hit', JSON.stringify(command));
+          var db = require (__dirname + '/db.js').CreateDB(grandparent.parent);
         }
         default: {
           break;
