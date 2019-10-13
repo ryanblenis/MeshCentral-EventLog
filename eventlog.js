@@ -3,15 +3,9 @@
 * @author Ryan Blenis
 * @copyright 
 * @license Apache-2.0
-* @version v0.0.1
+* @version v0.0.2
 */
 
-/*xjslint node: true */
-/*xjslint plusplus: true */
-/*xjslint maxlen: 256 */
-/*jshint node: true */
-/*jshint strict: false */
-/*jshint esversion: 6 */
 "use strict";
 
 module.exports.eventlog = function (parent) {
@@ -28,7 +22,8 @@ module.exports.eventlog = function (parent) {
       'fe_on_message',
       'onRemoteEventLogStateChange',
       'createRemoteEventLog',
-      'onDeviceRefreshEnd'
+      'onDeviceRefreshEnd',
+      'showLog'
     ];
     
     obj.server_startup = function() {
@@ -54,6 +49,19 @@ module.exports.eventlog = function (parent) {
       return '<div id=pluginEventLog></div>';
     };
     
+    obj.showLog = function(which) {
+        var x = Q('eventlogentry').querySelectorAll(".eventLogLogType");
+        
+        if (x.length)
+        for (const i in Object.values(x)) { console.log('i here', x[i]);
+            if (!x[i].classList.contains('logType'+which)) {
+                x[i].style.display = 'none';
+            } else {
+                x[i].style.display = '';
+            }
+        }
+    };
+    
     // called when a new plugin message is received on the front end
     obj.fe_on_message = function(server, message) {
       var data = JSON.parse(message);
@@ -62,55 +70,82 @@ module.exports.eventlog = function (parent) {
         pluginHandler.eventlog.livelog = null;
         return;
       }
+      if (!pluginHandler.eventlog.entryContainerCreated) {
+            var cstr = `<div id=eventlogentry>
+                <style>
+                #pluginEventLog > div > div > span {
+                  width: 150px;
+                  white-space: nowrap;
+                  overflow: hidden;
+                  text-overflow: ellipsis;
+                  float:left;
+                  padding: 2px;
+                  margin: 0;
+                  display: inline-block;
+                }
+                #pluginEventLog > div > div.eventLogLogType {
+                      padding: 2px;
+                      display: inline-block;
+                }
+                #pluginEventLog > div > div.eventLogLogType:nth-child(odd) {
+                      background-color: #CCC;
+                }
+                #eventLogLogNav {
+                    padding: 3px;
+                    margin: 3px;
+                    border: 1px solid;
+                    display: inline-block;
+                }
+                #pluginEventLog > div > div > span.eventlogcLevelDisplayName {
+                    width: 100px;
+                }
+                #pluginEventLog > div > div > span.eventlogcTimeCreated {
+                    width: 150px;
+                }
+                #pluginEventLog > div > div > span.eventlogcProviderName {
+                    width: 100px;
+                }
+                #pluginEventLog > div > div > span.eventlogcMessage {
+                    width: 350px;
+                }
+                #pluginEventLog > div > div > span.eventlogcId {
+                    width: 50px;
+                }
+                </style>
+                <div id=eventLogLogNav><span onclick="return pluginHandler.eventlog.showLog('Application');">Application</span><span onclick="return pluginHandler.eventlog.showLog('System');">System</span></div>
+                <div style="clear: both;"></div></div>`;
+                QH('pluginEventLog', cstr);
+          pluginHandler.eventlog.entryContainerCreated = true;
+      }
       var str = '';
       for (var i in data) {
         str = '';
-        str += `<div class=eventlogentry>
-      <style>
-      #pluginEventLog > div > div > span {
-        width: 150px;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        float:left;
-        padding: 2px;
-        margin: 0;
-        display: inline-block;
-      }
-    #pluginEventLog > div > div {
-          padding: 2px;
-          display: inline-block;
-    }
-     #pluginEventLog > div > div:nth-child(odd) {
-          background-color: #CCC;
-    }
-    </style>`;
-    var eventTypes = {1: 'Error', 2: 'Warning', 4: 'Info', 8: 'SuccessAudit', 16: 'FailureAudit'};
-    
+        var skip = false;
         for (const e of data[i]) {
-          str += '<div>';
+          str += '<div class="eventLogLogType logType'+e.LogName+'">';
           for (let [k, v] of Object.entries(e)) {
+            skip = false;
             switch (k) {
-              case 'EntryType': {
-                  v = eventTypes[v];
+              case 'LogName': {
+                  skip = true;
               break;
               }
-              case 'TimeGenerated': {
+              case 'TimeCreated': {
                 v = v.match(/\d+/g);
                 v = new Date(Number(v)).toLocaleDateString() +' '+ new Date(Number(v)).toLocaleTimeString();
                 break;
               }
               default: { break; }
             }
-            str += '<span title="'+v+'">'+v+'</span>';
+            if (!skip) str += '<span class=eventlogc'+k+' title="'+v+'">'+v+'</span>';
           }
           str += '</div>';
         }
         str += '</div>';
-        QH('pluginEventLog', str);
+        QA('eventlogentry', str);
       }
-      pluginHandler.eventlog.livelog.Stop();
-      pluginHandler.eventlog.livelog = null;
+      //pluginHandler.eventlog.livelog.Stop();
+      //pluginHandler.eventlog.livelog = null;
     };
     
     obj.onRemoteEventLogStateChange = function(xdata, state) {
@@ -125,7 +160,7 @@ module.exports.eventlog = function (parent) {
                 break;
             case 3:
                 if (pluginHandler.eventlog.livelog) {
-                  pluginHandler.eventlog.livelog.sendText({ action: 'plugin', plugin: 'eventlog', pluginaction: 'getlog' });
+                  pluginHandler.eventlog.livelog.sendText({ action: 'plugin', plugin: 'eventlog', pluginaction: 'getlivelogs' });
                 }
                 break;
             default:
@@ -203,6 +238,10 @@ module.exports.eventlog = function (parent) {
           }
           
           break;
+        }
+        case 'gatherlogs': { // save logs to server db
+          //console.log('sending logs via server hit', JSON.stringify(command));
+          //var db = require (__dirname + '/db.js').CreateDB(grandparent.parent);
         }
         default: {
           break;
