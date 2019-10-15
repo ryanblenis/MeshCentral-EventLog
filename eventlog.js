@@ -3,7 +3,7 @@
 * @author Ryan Blenis
 * @copyright 
 * @license Apache-2.0
-* @version v0.0.3
+* @version v0.0.4
 */
 
 "use strict";
@@ -97,6 +97,9 @@ module.exports.eventlog = function (parent) {
                     border: 1px solid;
                     display: inline-block;
                 }
+                #eventLogLogNav > span {
+                    cursor: pointer;
+                }
                 #pluginEventLog > div > div > span.eventlogcLevelDisplayName {
                     width: 100px;
                 }
@@ -159,9 +162,10 @@ module.exports.eventlog = function (parent) {
         if (pluginHandler.eventlog.webRtcActive == true) { str += ', WebRTC'; }
         switch (state) {
             case 0:
-                if (pluginHandler.eventlog.livelog != null) { 
+                if (pluginHandler.eventlog.livelog != null) {
                   pluginHandler.eventlog.livelog.Stop(); 
                   pluginHandler.eventlog.livelog = null; 
+                  QH('pluginEventLog', '');
                 }
                 break;
             case 3:
@@ -186,8 +190,8 @@ module.exports.eventlog = function (parent) {
     obj.onDeviceRefreshEnd = function(nodeid, panel, refresh, event) {
       pluginHandler.registerPluginTab(pluginHandler.eventlog.registerPluginTab);
       QH('p19pages', pluginHandler.eventlog.on_device_page());
-      
       if (typeof pluginHandler.eventlog.livelog == 'undefined') { pluginHandler.eventlog.livelog = null; }
+      QH('pluginEventLog', ''); pluginHandler.eventlog.livelog = null;
       if (!pluginHandler.eventlog.livelog) {
           pluginHandler.eventlog.livelognode = currentNode;
           // Setup a mesh agent files
@@ -239,7 +243,7 @@ module.exports.eventlog = function (parent) {
         case 'gatherlogs': { // submit logs to server db
             try {
                 var db = require (__dirname + '/db.js').CreateDB(grandparent.parent);
-                console.log('Gathering logs for: '+myparent.dbNodeKey+' with data', command.data);
+                //console.log('Gathering logs for: '+myparent.dbNodeKey+' with data', command.data);
                 db.addEventsFor(myparent.dbNodeKey, JSON.parse(command.data));
                 db.getLastEventFor(myparent.dbNodeKey, function (rec) {
                     // send a message to the endpoint verifying receipt

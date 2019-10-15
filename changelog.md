@@ -7,9 +7,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Server-side review of stored logs
 
 ## [Known Issues]
-- Switching from one device to another causes live event data not to load for that device. Next device viewed will work as expected. Repeat.
 - Endpoints don't start periodically polling for event data until another eventlog action, or the device is viewed in the admin console, occurs.
 -- Note: this can be alleviated by adding `require('entrylog')` to the start of the `createMeshCore` function in the meshcore file.
+
+## [0.0.4] - 2019-10-15
+### Fixed
+- Switching from one device to another caused live event data not to load for that device. Next device viewed would work as expected. This should be consistent now.
 
 ## [0.0.3] - 2019-10-15
 ### Added
