@@ -3,7 +3,7 @@
 * @author Ryan Blenis
 * @copyright 
 * @license Apache-2.0
-* @version v0.0.2
+* @version v0.0.3
 */
 
 "use strict";
@@ -27,13 +27,14 @@ module.exports.eventlog = function (parent) {
     ];
     
     obj.server_startup = function() {
-      //obj.parent.parent.debug('plugin:eventlog', 'Starting eventlog plugin with server');
-      // we don't actually need to do anything here yet, but leaving it as a placeholder/example
+        // obj.parent.parent.debug('plugin:eventlog', 'Starting eventlog plugin with server');
+        // we don't actually need to do anything here yet, but leaving it as a placeholder/example
+        console.log(Object.keys(obj.meshServer));
     };
     
     obj.consoleaction = function() {
-      // due to this code running on the client side, this hook is actually contained 
-      //   in the ./modules_meshcore/eventlog.js (note kept here for informational purposes)
+        // due to this code running on the client side, this hook is actually contained 
+        //   in the ./modules_meshcore/eventlog.js (note kept here for informational purposes)
     };
     
     // called to notify the web server that there is a new tab in town
@@ -70,7 +71,7 @@ module.exports.eventlog = function (parent) {
         pluginHandler.eventlog.livelog = null;
         return;
       }
-      if (!pluginHandler.eventlog.entryContainerCreated) {
+      if (!Q('eventlogentry')) {
             var cstr = `<div id=eventlogentry>
                 <style>
                 #pluginEventLog > div > div > span {
@@ -103,10 +104,10 @@ module.exports.eventlog = function (parent) {
                     width: 150px;
                 }
                 #pluginEventLog > div > div > span.eventlogcProviderName {
-                    width: 100px;
+                    width: 200px;
                 }
                 #pluginEventLog > div > div > span.eventlogcMessage {
-                    width: 350px;
+                    width: 400px;
                 }
                 #pluginEventLog > div > div > span.eventlogcId {
                     width: 50px;
@@ -115,7 +116,6 @@ module.exports.eventlog = function (parent) {
                 <div id=eventLogLogNav><span onclick="return pluginHandler.eventlog.showLog('Application');">Application</span><span onclick="return pluginHandler.eventlog.showLog('System');">System</span></div>
                 <div style="clear: both;"></div></div>`;
                 QH('pluginEventLog', cstr);
-          pluginHandler.eventlog.entryContainerCreated = true;
       }
       var str = '';
       for (var i in data) {
@@ -133,7 +133,13 @@ module.exports.eventlog = function (parent) {
               case 'TimeCreated': {
                 v = v.match(/\d+/g);
                 v = new Date(Number(v)).toLocaleDateString() +' '+ new Date(Number(v)).toLocaleTimeString();
-                break;
+              break;
+              }
+              case 'LevelDisplayName': {
+                  if (v == 'null') {
+                      v = 'Error';
+                  }
+              break;
               }
               default: { break; }
             }
@@ -199,15 +205,6 @@ module.exports.eventlog = function (parent) {
           pluginHandler.eventlog.livelog.Stop();
           pluginHandler.eventlog.livelog = null;
       }
-      
-      /* meshserver.send({ 
-        action: 'plugin', 
-        plugin: "eventlog",
-        pluginaction: "sendlog",
-        nodeid: currentNode._id,
-        routeToNode: true
-        //  "tag": "console"
-      });*/
     };
     
     // data was sent to server from the client. do something with it.
@@ -239,9 +236,37 @@ module.exports.eventlog = function (parent) {
           
           break;
         }
-        case 'gatherlogs': { // save logs to server db
-          console.log('sending logs via server hit', JSON.stringify(command));
-          var db = require (__dirname + '/db.js').CreateDB(grandparent.parent);
+        case 'gatherlogs': { // submit logs to server db
+            try {
+                var db = require (__dirname + '/db.js').CreateDB(grandparent.parent);
+                console.log('Gathering logs for: '+myparent.dbNodeKey+' with data', command.data);
+                db.addEventsFor(myparent.dbNodeKey, JSON.parse(command.data));
+                db.getLastEventFor(myparent.dbNodeKey, function (rec) {
+                    // send a message to the endpoint verifying receipt
+                    // temp: fake a console message until the below makes it into master project
+                
+                    myparent.send(JSON.stringify({ 
+                        action: 'msg', 
+                        type: 'console', 
+                        nodeid: myparent.dbNodeKey, 
+                        rights: true,
+                        sessionid: true,
+                        value: 'plugin eventlog setLVDOC '+rec[0].TimeCreated[0]
+                    }));
+                    // waiting for pull request to master to support this
+                    /*myparent.send(JSON.stringify({ 
+                        action: 'plugin', 
+                        pluginaction: 'setLVDOC2', 
+                        plugin: 'eventlog',
+                        nodeid: myparent.dbNodeKey, 
+                        rights: true,
+                        sessionid: true,
+                        value: rec[0].TimeCreated[0]
+                    }));*/
+                
+                });
+              } catch (e) { console.log('Error gathering logs: ', e.stack); } 
+            
         }
         default: {
           break;
