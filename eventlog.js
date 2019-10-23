@@ -3,7 +3,7 @@
 * @author Ryan Blenis
 * @copyright 
 * @license Apache-2.0
-* @version v0.0.4
+* @version v0.0.6
 */
 
 "use strict";
@@ -24,14 +24,14 @@ module.exports.eventlog = function (parent) {
       'createRemoteEventLog',
       'onDeviceRefreshEnd',
       'showLog',
-      'loadLiveLogs',
+      'loadLogs',
       'eventLogTab'
     ];
     
     obj.server_startup = function() {
         // obj.parent.parent.debug('plugin:eventlog', 'Starting eventlog plugin with server');
         // we don't actually need to do anything here yet, but leaving it as a placeholder/example
-        console.log(Object.keys(obj.meshServer));
+        //console.log(Object.keys(obj.meshServer));
     };
     
     obj.consoleaction = function() {
@@ -60,7 +60,7 @@ module.exports.eventlog = function (parent) {
         }
         logOption.className = 'eventLogTabActive';
         var which = logOption.innerHTML;
-        var x = Q('eventlogentry').querySelectorAll(".eventLogLogType");
+        var x = Q('eventlogentry').querySelectorAll(".eventLogRow");
         
         if (x.length)
         for (const i in Object.values(x)) {
@@ -89,13 +89,13 @@ module.exports.eventlog = function (parent) {
         QS(contentId).display = '';
     };
     
-    obj.loadLiveLogs = function(data) {
+    obj.loadLogs = function(data, container) {
       var str = '';
       for (var i in data) {
         str = '';
         var skip = false;
         for (const e of data[i]) {
-          str += '<div class="eventLogLogType logType'+e.LogName+'">';
+          str += '<div class="eventLogRow logType'+e.LogName+'">';
           for (let [k, v] of Object.entries(e)) {
             skip = false;
             switch (k) {
@@ -121,7 +121,7 @@ module.exports.eventlog = function (parent) {
           str += '</div>';
         }
         str += '</div>';
-        QA('eventlogentry', str);
+        QA(container, str);
       }
     };
     
@@ -139,7 +139,7 @@ module.exports.eventlog = function (parent) {
             <button onclick="return pluginHandler.eventlog.eventLogTab(this, 'eventloghistory');">History</button>
             </div><div id=eventloghistory class=eventLogPage></div><div class=eventLogPage id=eventlogentry>
                 <style>
-                #pluginEventLog > div > div > span {
+                #pluginEventLog .eventLogRow > span {
                   width: 150px;
                   white-space: nowrap;
                   overflow: hidden;
@@ -149,30 +149,27 @@ module.exports.eventlog = function (parent) {
                   margin: 0;
                   display: inline-block;
                 }
-                #pluginEventLog > div > div.eventLogLogType {
+                #pluginEventLog .eventLogRow {
                       padding: 2px;
                       display: inline-block;
                 }
-                #pluginEventLog > div > div.eventLogLogType:nth-child(odd) {
+                #pluginEventLog .eventLogRow:nth-child(odd) {
                       background-color: #CCC;
                 }
-                #pluginEventLog > div > div > span.eventlogcLevelDisplayName {
+                #pluginEventLog .eventLogRow > span.eventlogcLevelDisplayName {
                     width: 100px;
                 }
-                #pluginEventLog > div > div > span.eventlogcTimeCreated {
+                #pluginEventLog .eventLogRow > span.eventlogcTimeCreated {
                     width: 150px;
                 }
-                #pluginEventLog > div > div > span.eventlogcProviderName {
+                #pluginEventLog .eventLogRow > span.eventlogcProviderName {
                     width: 200px;
                 }
-                #pluginEventLog > div > div > span.eventlogcMessage {
+                #pluginEventLog .eventLogRow > span.eventlogcMessage {
                     width: 400px;
                 }
-                #pluginEventLog > div > div > span.eventlogcId {
+                #pluginEventLog .eventLogRow > span.eventlogcId {
                     width: 50px;
-                }
-                #eventLogHistoryContainer {
-                    display: none;
                 }
                 #eventLogMainNav {
                   overflow: hidden;
@@ -200,18 +197,19 @@ module.exports.eventlog = function (parent) {
                   border-top: none;
                 }
                 </style>
-                <div id=eventLogHistory"></div>
                 <div class=eventLogNavClass id=eventLogLogNav>
                   <button class=eventLogTabActive onclick="return pluginHandler.eventlog.showLog(this);">Application</button>
                   <button onclick="return pluginHandler.eventlog.showLog(this);">System</button>
-                <div style="clear: both;"></div></div>`;
+                </div>
+                <div style="clear: both;"></div>
+                <div id=eventLogHistory></div>
+                <div id=eventLogLive></div>`;
                 QH('pluginEventLog', cstr);
+                var firstTab = Q('eventLogLogNav').querySelectorAll('.eventLogTabActive');
+                firstTab[0].click();
       }
-      pluginHandler.eventlog.loadLiveLogs(data);
+      pluginHandler.eventlog.loadLogs(data, 'eventLogLive');
       //pluginHandler.eventlog.loadHistoricalLogs(data);
-      
-      //pluginHandler.eventlog.livelog.Stop();
-      //pluginHandler.eventlog.livelog = null;
     };
     
     obj.onRemoteEventLogStateChange = function(xdata, state) {
@@ -252,7 +250,7 @@ module.exports.eventlog = function (parent) {
       if (!pluginHandler.eventlog.livelog) {
           pluginHandler.eventlog.livelognode = currentNode;
           // Setup a mesh agent files
-          pluginHandler.eventlog.livelog = CreateAgentRedirect(meshserver, pluginHandler.eventlog.createRemoteEventLog(pluginHandler.eventlog.fe_on_message), serverPublicNamePort, authCookie, domainUrl);
+          pluginHandler.eventlog.livelog = CreateAgentRedirect(meshserver, pluginHandler.eventlog.createRemoteEventLog(pluginHandler.eventlog.fe_on_message), serverPublicNamePort, authCookie, authRelayCookie, domainUrl);
           pluginHandler.eventlog.livelog.attemptWebRTC = attemptWebRTC;
           pluginHandler.eventlog.livelog.onStateChanged = pluginHandler.eventlog.onRemoteEventLogStateChange;
           pluginHandler.eventlog.livelog.onConsoleMessageChange = function () {
