@@ -3,7 +3,7 @@
 * @author Ryan Blenis
 * @copyright 
 * @license Apache-2.0
-* @version v0.0.4
+* @version v0.0.5
 */
 
 "use strict";
@@ -195,7 +195,7 @@ module.exports.eventlog = function (parent) {
       if (!pluginHandler.eventlog.livelog) {
           pluginHandler.eventlog.livelognode = currentNode;
           // Setup a mesh agent files
-          pluginHandler.eventlog.livelog = CreateAgentRedirect(meshserver, pluginHandler.eventlog.createRemoteEventLog(pluginHandler.eventlog.fe_on_message), serverPublicNamePort, authCookie, domainUrl);
+          pluginHandler.eventlog.livelog = CreateAgentRedirect(meshserver, pluginHandler.eventlog.createRemoteEventLog(pluginHandler.eventlog.fe_on_message), serverPublicNamePort, authCookie, authRelayCookie, domainUrl);
           pluginHandler.eventlog.livelog.attemptWebRTC = attemptWebRTC;
           pluginHandler.eventlog.livelog.onStateChanged = pluginHandler.eventlog.onRemoteEventLogStateChange;
           pluginHandler.eventlog.livelog.onConsoleMessageChange = function () {
