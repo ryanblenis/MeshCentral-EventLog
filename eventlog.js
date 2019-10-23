@@ -3,7 +3,7 @@
 * @author Ryan Blenis
 * @copyright 
 * @license Apache-2.0
-* @version v0.0.5
+* @version v0.0.6
 */
 
 "use strict";
@@ -23,13 +23,15 @@ module.exports.eventlog = function (parent) {
       'onRemoteEventLogStateChange',
       'createRemoteEventLog',
       'onDeviceRefreshEnd',
-      'showLog'
+      'showLog',
+      'loadLogs',
+      'eventLogTab'
     ];
     
     obj.server_startup = function() {
         // obj.parent.parent.debug('plugin:eventlog', 'Starting eventlog plugin with server');
         // we don't actually need to do anything here yet, but leaving it as a placeholder/example
-        console.log(Object.keys(obj.meshServer));
+        //console.log(Object.keys(obj.meshServer));
     };
     
     obj.consoleaction = function() {
@@ -50,8 +52,15 @@ module.exports.eventlog = function (parent) {
       return '<div id=pluginEventLog></div>';
     };
     
-    obj.showLog = function(which) {
-        var x = Q('eventlogentry').querySelectorAll(".eventLogLogType");
+    obj.showLog = function(logOption) {
+        var parent = logOption.parentElement;
+        var children = parent.querySelectorAll("button");
+        for (const i in Object.values(children)) {
+              children[i].className = '';
+        }
+        logOption.className = 'eventLogTabActive';
+        var which = logOption.innerHTML;
+        var x = Q('eventlogentry').querySelectorAll(".eventLogRow");
         
         if (x.length)
         for (const i in Object.values(x)) {
@@ -63,69 +72,30 @@ module.exports.eventlog = function (parent) {
         }
     };
     
-    // called when a new plugin message is received on the front end
-    obj.fe_on_message = function(server, message) {
-      var data = JSON.parse(message);
-      if (data.type == 'close') {
-        pluginHandler.eventlog.livelog.Stop();
-        pluginHandler.eventlog.livelog = null;
-        return;
-      }
-      if (!Q('eventlogentry')) {
-            var cstr = `<div id=eventlogentry>
-                <style>
-                #pluginEventLog > div > div > span {
-                  width: 150px;
-                  white-space: nowrap;
-                  overflow: hidden;
-                  text-overflow: ellipsis;
-                  float:left;
-                  padding: 2px;
-                  margin: 0;
-                  display: inline-block;
-                }
-                #pluginEventLog > div > div.eventLogLogType {
-                      padding: 2px;
-                      display: inline-block;
-                }
-                #pluginEventLog > div > div.eventLogLogType:nth-child(odd) {
-                      background-color: #CCC;
-                }
-                #eventLogLogNav {
-                    padding: 3px;
-                    margin: 3px;
-                    border: 1px solid;
-                    display: inline-block;
-                }
-                #eventLogLogNav > span {
-                    cursor: pointer;
-                }
-                #pluginEventLog > div > div > span.eventlogcLevelDisplayName {
-                    width: 100px;
-                }
-                #pluginEventLog > div > div > span.eventlogcTimeCreated {
-                    width: 150px;
-                }
-                #pluginEventLog > div > div > span.eventlogcProviderName {
-                    width: 200px;
-                }
-                #pluginEventLog > div > div > span.eventlogcMessage {
-                    width: 400px;
-                }
-                #pluginEventLog > div > div > span.eventlogcId {
-                    width: 50px;
-                }
-                </style>
-                <div id=eventLogLogNav><span onclick="return pluginHandler.eventlog.showLog('Application');">Application</span><span onclick="return pluginHandler.eventlog.showLog('System');">System</span></div>
-                <div style="clear: both;"></div></div>`;
-                QH('pluginEventLog', cstr);
-      }
+    obj.eventLogTab = function(tabOption, contentId) {
+        var parent = tabOption.parentElement;
+        var children = parent.querySelectorAll("button");
+        for (const i in Object.values(children)) {
+              children[i].className = '';
+        }
+        tabOption.className = 'eventLogTabActive';
+        var which = tabOption.innerHTML;
+        var x = Q('pluginEventLog').querySelectorAll(".eventLogPage");
+        
+        if (x.length)
+        for (const i in Object.values(x)) {
+              x[i].style.display = 'none';
+        }
+        QS(contentId).display = '';
+    };
+    
+    obj.loadLogs = function(data, container) {
       var str = '';
       for (var i in data) {
         str = '';
         var skip = false;
         for (const e of data[i]) {
-          str += '<div class="eventLogLogType logType'+e.LogName+'">';
+          str += '<div class="eventLogRow logType'+e.LogName+'">';
           for (let [k, v] of Object.entries(e)) {
             skip = false;
             switch (k) {
@@ -151,10 +121,95 @@ module.exports.eventlog = function (parent) {
           str += '</div>';
         }
         str += '</div>';
-        QA('eventlogentry', str);
+        QA(container, str);
       }
-      //pluginHandler.eventlog.livelog.Stop();
-      //pluginHandler.eventlog.livelog = null;
+    };
+    
+    // called when a new plugin message is received on the front end
+    obj.fe_on_message = function(server, message) {
+      var data = JSON.parse(message);
+      if (data.type == 'close') {
+        pluginHandler.eventlog.livelog.Stop();
+        pluginHandler.eventlog.livelog = null;
+        return;
+      }
+      if (!Q('eventlogentry')) {
+            var cstr = `<div class=eventLogNavClass id=eventLogMainNav>
+            <button class=eventLogTabActive onclick="return pluginHandler.eventlog.eventLogTab(this, 'eventlogentry');">Live</button>
+            <button onclick="return pluginHandler.eventlog.eventLogTab(this, 'eventloghistory');">History</button>
+            </div><div id=eventloghistory class=eventLogPage></div><div class=eventLogPage id=eventlogentry>
+                <style>
+                #pluginEventLog .eventLogRow > span {
+                  width: 150px;
+                  white-space: nowrap;
+                  overflow: hidden;
+                  text-overflow: ellipsis;
+                  float:left;
+                  padding: 2px;
+                  margin: 0;
+                  display: inline-block;
+                }
+                #pluginEventLog .eventLogRow {
+                      padding: 2px;
+                      display: inline-block;
+                }
+                #pluginEventLog .eventLogRow:nth-child(odd) {
+                      background-color: #CCC;
+                }
+                #pluginEventLog .eventLogRow > span.eventlogcLevelDisplayName {
+                    width: 100px;
+                }
+                #pluginEventLog .eventLogRow > span.eventlogcTimeCreated {
+                    width: 150px;
+                }
+                #pluginEventLog .eventLogRow > span.eventlogcProviderName {
+                    width: 200px;
+                }
+                #pluginEventLog .eventLogRow > span.eventlogcMessage {
+                    width: 400px;
+                }
+                #pluginEventLog .eventLogRow > span.eventlogcId {
+                    width: 50px;
+                }
+                #eventLogMainNav {
+                  overflow: hidden;
+                  border: 1px solid #ccc;
+                  background-color: #f1f1f1;
+                }
+                .eventLogNavClass button {
+                  background-color: inherit;
+                  float: left;
+                  border: none;
+                  outline: none;
+                  cursor: pointer;
+                  padding: 10px 12px;
+                  transition: 0.3s;
+                }
+                .eventLogNavClass button:hover {
+                  background-color: #ddd;
+                }
+                .eventLogNavClass button.eventLogTabActive {
+                  background-color: #ccc;
+                }
+                .eventLogPage {
+                  padding: 6px 12px;
+                  border: 1px solid #ccc;
+                  border-top: none;
+                }
+                </style>
+                <div class=eventLogNavClass id=eventLogLogNav>
+                  <button class=eventLogTabActive onclick="return pluginHandler.eventlog.showLog(this);">Application</button>
+                  <button onclick="return pluginHandler.eventlog.showLog(this);">System</button>
+                </div>
+                <div style="clear: both;"></div>
+                <div id=eventLogHistory></div>
+                <div id=eventLogLive></div>`;
+                QH('pluginEventLog', cstr);
+                var firstTab = Q('eventLogLogNav').querySelectorAll('.eventLogTabActive');
+                firstTab[0].click();
+      }
+      pluginHandler.eventlog.loadLogs(data, 'eventLogLive');
+      //pluginHandler.eventlog.loadHistoricalLogs(data);
     };
     
     obj.onRemoteEventLogStateChange = function(xdata, state) {

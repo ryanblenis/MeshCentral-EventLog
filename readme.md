@@ -1,7 +1,7 @@
 
 # MeshCentral-EventLog
 
-*Current Version: 0.0.5
+*Current Version: 0.0.6
 Released: 2019-10-23*
 
 Initially conceived as a proof of concept plugin for the [MeshCentral2](https://github.com/Ylianst/MeshCentral) Project to introduce extensibility into the project without requiring the MeshCentral2 project to incorporate everyone's requested changes into the main project, yet allow it to be accomplished by others. In creating this plugin, we're introducing the appropriate hooks into MeshCentral2 to allow extensibility to anyone who can write a plugin, while trying to modify the core project as little as possible.
@@ -69,4 +69,4 @@ This project can be expanded to include:
 - When used in conjunction with a task-scheduling plugin could fire off a task on an endpoint in response to an event
 
 # Screenshots
-![Device Plugin Page](https://user-images.githubusercontent.com/1929277/66811034-624f9f80-eefe-11e9-8967-27f18bcec57f.png)
+![Device Plugin Page](https://user-images.githubusercontent.com/1929277/67437370-adcd1200-f5be-11e9-9750-99f9c89b4c11.png)
