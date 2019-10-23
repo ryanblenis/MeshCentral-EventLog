@@ -69,4 +69,4 @@ This project can be expanded to include:
 - When used in conjunction with a task-scheduling plugin could fire off a task on an endpoint in response to an event
 
 # Screenshots
-![Device Plugin Page](https://user-images.githubusercontent.com/1929277/66811034-624f9f80-eefe-11e9-8967-27f18bcec57f.png)
+![Device Plugin Page](https://user-images.githubusercontent.com/1929277/67437370-adcd1200-f5be-11e9-9750-99f9c89b4c11.png)
