@@ -3,7 +3,7 @@
 * @author Ryan Blenis
 * @copyright 
 * @license Apache-2.0
-* @version v0.0.8
+* @version v0.0.9
 */
 
 "use strict";
@@ -295,19 +295,22 @@ module.exports.eventlog = function (parent) {
       pluginHandler.registerPluginTab(pluginHandler.eventlog.registerPluginTab);
       QH('p19pages', pluginHandler.eventlog.on_device_page());
       if (typeof pluginHandler.eventlog.livelog == 'undefined') { pluginHandler.eventlog.livelog = null; }
+      if (pluginHandler.eventlog.livelog != null) { pluginHandler.eventlog.livelog.Stop(); pluginHandler.eventlog.livelog = null; }
       QH('pluginEventLog', ''); pluginHandler.eventlog.livelog = null;
       if (!pluginHandler.eventlog.livelog) {
           pluginHandler.eventlog.livelognode = currentNode;
           // Setup a mesh agent files
-          pluginHandler.eventlog.livelog = CreateAgentRedirect(meshserver, pluginHandler.eventlog.createRemoteEventLog(pluginHandler.eventlog.fe_on_message), serverPublicNamePort, authCookie, authRelayCookie, domainUrl);
-          pluginHandler.eventlog.livelog.attemptWebRTC = attemptWebRTC;
-          pluginHandler.eventlog.livelog.onStateChanged = pluginHandler.eventlog.onRemoteEventLogStateChange;
-          pluginHandler.eventlog.livelog.onConsoleMessageChange = function () {
-              if (pluginHandler.eventlog.livelog.consoleMessage) {
-                  console.log('console message available. ', pluginHandler.eventlog.livelog.consoleMessage)
+          if (pluginHandler.eventlog.livelognode.conn) {
+              pluginHandler.eventlog.livelog = CreateAgentRedirect(meshserver, pluginHandler.eventlog.createRemoteEventLog(pluginHandler.eventlog.fe_on_message), serverPublicNamePort, authCookie, authRelayCookie, domainUrl);
+              pluginHandler.eventlog.livelog.attemptWebRTC = attemptWebRTC;
+              pluginHandler.eventlog.livelog.onStateChanged = pluginHandler.eventlog.onRemoteEventLogStateChange;
+              pluginHandler.eventlog.livelog.onConsoleMessageChange = function () {
+                  if (pluginHandler.eventlog.livelog.consoleMessage) {
+                      console.log('console message available. ', pluginHandler.eventlog.livelog.consoleMessage)
+                  }
               }
+              pluginHandler.eventlog.livelog.Start(pluginHandler.eventlog.livelognode._id);
           }
-          pluginHandler.eventlog.livelog.Start(pluginHandler.eventlog.livelognode._id);
       } else {
           //QH('Term', '');
           pluginHandler.eventlog.livelog.Stop();
