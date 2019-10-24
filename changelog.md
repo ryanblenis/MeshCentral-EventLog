@@ -10,6 +10,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Endpoints don't start periodically polling for event data until another eventlog action, or the device is viewed in the admin console, occurs.
 -- Note: this can be alleviated by adding `require('entrylog')` to the start of the `createMeshCore` function in the meshcore file.
 
+## [0.0.8] - 2019-10-24
+### Added
+- Ability to filter event logs via text search
+
 ## [0.0.7] - 2019-10-24
 ### Added
 - Ability to view historical events (when collected from endpoints)

@@ -3,7 +3,7 @@
 * @author Ryan Blenis
 * @copyright 
 * @license Apache-2.0
-* @version v0.0.7
+* @version v0.0.8
 */
 
 "use strict";

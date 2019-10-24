@@ -3,7 +3,7 @@
 * @author Ryan Blenis
 * @copyright 
 * @license Apache-2.0
-* @version v0.0.7
+* @version v0.0.8
 */
 
 "use strict";
@@ -27,7 +27,8 @@ module.exports.eventlog = function (parent) {
       'loadLogs',
       'eventLogTab',
       'onLoadHistory',
-      'loadEventLogMain'
+      'loadEventLogMain',
+      'filterLog'
     ];
     
     obj.server_startup = function() {
@@ -52,6 +53,19 @@ module.exports.eventlog = function (parent) {
     // called to get the content for that tabs data
     obj.on_device_page = function() {
       return '<div id=pluginEventLog></div>';
+    };
+    
+    obj.filterLog = function(el) {
+        var x = Q('pluginEventLog').querySelectorAll(".eventLogRow");
+        if (x.length)
+        for (const i in Object.values(x)) {
+            if (x[i].textContent.toLowerCase().indexOf(el.value.toLowerCase()) === -1) {
+                x[i].classList.add('eventLogFilterHide');
+            } else {
+                x[i].classList.remove('eventLogFilterHide');
+                x[i].parentNode.appendChild(x[i]);
+            }
+        }
     };
     
     obj.showLog = function(logOption) {
@@ -151,6 +165,7 @@ module.exports.eventlog = function (parent) {
             var cstr = `<div class=eventLogNavClass id=eventLogMainNav>
             <button class=eventLogTabActive onclick="return pluginHandler.eventlog.eventLogTab(this, 'eventlogentry');">Live</button>
             <button onclick="return pluginHandler.eventlog.eventLogTab(this, 'eventLogHistoryContainer');">History</button>
+            <span id=eventLogFilter>Filter: <input type="text" onkeyup="return pluginHandler.eventlog.filterLog(this)"></span>
             </div><div id=eventLogHistoryContainer class=eventLogPage style="display:none;">
             <div class=eventLogNavClass>
               <button class=eventLogTabActive onclick="return pluginHandler.eventlog.showLog(this);">Application</button>
@@ -167,11 +182,17 @@ module.exports.eventlog = function (parent) {
                   margin: 0;
                   display: inline-block;
                 }
+                #pluginEventLog #eventLogFilter {
+                      padding: 10px 12px;
+                }
                 #pluginEventLog .eventLogRow {
                       padding: 2px;
                       display: inline-block;
                 }
                 #pluginEventLog .eventLogHide {
+                    display: none;
+                }
+                #pluginEventLog .eventLogFilterHide {
                     display: none;
                 }
                 #pluginEventLog .eventLogRow:nth-child(odd) {
