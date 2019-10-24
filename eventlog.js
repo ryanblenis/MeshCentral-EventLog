@@ -3,7 +3,7 @@
 * @author Ryan Blenis
 * @copyright 
 * @license Apache-2.0
-* @version v0.0.6
+* @version v0.0.7
 */
 
 "use strict";
@@ -25,7 +25,9 @@ module.exports.eventlog = function (parent) {
       'onDeviceRefreshEnd',
       'showLog',
       'loadLogs',
-      'eventLogTab'
+      'eventLogTab',
+      'onLoadHistory',
+      'loadEventLogMain'
     ];
     
     obj.server_startup = function() {
@@ -60,14 +62,15 @@ module.exports.eventlog = function (parent) {
         }
         logOption.className = 'eventLogTabActive';
         var which = logOption.innerHTML;
-        var x = Q('eventlogentry').querySelectorAll(".eventLogRow");
+        var x = parent.parentElement.querySelectorAll(".eventLogRow");
         
         if (x.length)
         for (const i in Object.values(x)) {
             if (!x[i].classList.contains('logType'+which)) {
-                x[i].style.display = 'none';
+                x[i].classList.add('eventLogHide');
             } else {
-                x[i].style.display = '';
+                x[i].classList.remove('eventLogHide');
+                x[i].parentNode.appendChild(x[i]);
             }
         }
     };
@@ -90,6 +93,13 @@ module.exports.eventlog = function (parent) {
     };
     
     obj.loadLogs = function(data, container) {
+      if (Array.isArray(data)) {
+          var tmp = { data: []}
+          for (var i in data) {
+              tmp.data.push(data[i]);
+          }
+          data = tmp;
+      }
       var str = '';
       for (var i in data) {
         str = '';
@@ -99,11 +109,17 @@ module.exports.eventlog = function (parent) {
           for (let [k, v] of Object.entries(e)) {
             skip = false;
             switch (k) {
+              case 'nodeid':
+              case '_id':
+              case 'time':
               case 'LogName': {
                   skip = true;
               break;
               }
               case 'TimeCreated': {
+                if (Array.isArray(v)) {
+                  v = v[0];
+                }
                 v = v.match(/\d+/g);
                 v = new Date(Number(v)).toLocaleDateString() +' '+ new Date(Number(v)).toLocaleTimeString();
               break;
@@ -125,19 +141,21 @@ module.exports.eventlog = function (parent) {
       }
     };
     
-    // called when a new plugin message is received on the front end
-    obj.fe_on_message = function(server, message) {
-      var data = JSON.parse(message);
-      if (data.type == 'close') {
-        pluginHandler.eventlog.livelog.Stop();
-        pluginHandler.eventlog.livelog = null;
-        return;
-      }
+    obj.onLoadHistory = function(server, message) {
+        pluginHandler.eventlog.loadEventLogMain();
+        pluginHandler.eventlog.loadLogs(message.events, 'eventLogHistory');
+    };
+    
+    obj.loadEventLogMain = function() {
       if (!Q('eventlogentry')) {
             var cstr = `<div class=eventLogNavClass id=eventLogMainNav>
             <button class=eventLogTabActive onclick="return pluginHandler.eventlog.eventLogTab(this, 'eventlogentry');">Live</button>
-            <button onclick="return pluginHandler.eventlog.eventLogTab(this, 'eventloghistory');">History</button>
-            </div><div id=eventloghistory class=eventLogPage></div><div class=eventLogPage id=eventlogentry>
+            <button onclick="return pluginHandler.eventlog.eventLogTab(this, 'eventLogHistoryContainer');">History</button>
+            </div><div id=eventLogHistoryContainer class=eventLogPage style="display:none;">
+            <div class=eventLogNavClass>
+              <button class=eventLogTabActive onclick="return pluginHandler.eventlog.showLog(this);">Application</button>
+              <button onclick="return pluginHandler.eventlog.showLog(this);">System</button>
+            </div><div style="clear: both;"></div><div id=eventLogHistory></div></div><div class=eventLogPage id=eventlogentry>
                 <style>
                 #pluginEventLog .eventLogRow > span {
                   width: 150px;
@@ -152,6 +170,9 @@ module.exports.eventlog = function (parent) {
                 #pluginEventLog .eventLogRow {
                       padding: 2px;
                       display: inline-block;
+                }
+                #pluginEventLog .eventLogHide {
+                    display: none;
                 }
                 #pluginEventLog .eventLogRow:nth-child(odd) {
                       background-color: #CCC;
@@ -202,14 +223,21 @@ module.exports.eventlog = function (parent) {
                   <button onclick="return pluginHandler.eventlog.showLog(this);">System</button>
                 </div>
                 <div style="clear: both;"></div>
-                <div id=eventLogHistory></div>
                 <div id=eventLogLive></div>`;
                 QH('pluginEventLog', cstr);
-                var firstTab = Q('eventLogLogNav').querySelectorAll('.eventLogTabActive');
-                firstTab[0].click();
       }
+    };
+    
+    // called when a new plugin message is received on the front end
+    obj.fe_on_message = function(server, message) {
+      var data = JSON.parse(message);
+      if (data.type == 'close') {
+        pluginHandler.eventlog.livelog.Stop();
+        pluginHandler.eventlog.livelog = null;
+        return;
+      }
+      pluginHandler.eventlog.loadEventLogMain();
       pluginHandler.eventlog.loadLogs(data, 'eventLogLive');
-      //pluginHandler.eventlog.loadHistoricalLogs(data);
     };
     
     obj.onRemoteEventLogStateChange = function(xdata, state) {
@@ -264,6 +292,8 @@ module.exports.eventlog = function (parent) {
           pluginHandler.eventlog.livelog.Stop();
           pluginHandler.eventlog.livelog = null;
       }
+      // get node historical events
+      meshserver.send({ action: 'plugin', plugin: 'eventlog', pluginaction: 'getNodeHistory', nodeid: nodeid });
     };
     
     // data was sent to server from the client. do something with it.
@@ -326,6 +356,17 @@ module.exports.eventlog = function (parent) {
                 });
               } catch (e) { console.log('Error gathering logs: ', e.stack); } 
             
+        }
+        case 'getNodeHistory': {
+            try {
+                var db = require (__dirname + '/db.js').CreateDB(grandparent.parent);
+                db.getEventsFor(command.nodeid, function(events){
+                  if (myobj.parent.ws != null) {
+                      myobj.parent.ws.send(JSON.stringify({ action: 'plugin', plugin: 'eventlog', method: 'onLoadHistory', events: events }));
+                  }
+                });
+            } catch (e) { console.log('PLUGIN: eventlog: getNodeHistory error'); }
+          break;
         }
         default: {
           break;
