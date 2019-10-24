@@ -3,9 +3,6 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-## [Unreleased]
-- Server-side review of stored logs
-
 ## [Known Issues]
 - Endpoints don't start periodically polling for event data until another eventlog action, or the device is viewed in the admin console, occurs.
 -- Note: this can be alleviated by adding `require('entrylog')` to the start of the `createMeshCore` function in the meshcore file.
