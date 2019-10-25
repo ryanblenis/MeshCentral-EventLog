@@ -3,7 +3,7 @@
 * @author Ryan Blenis
 * @copyright 
 * @license Apache-2.0
-* @version v0.0.9
+* @version v0.0.10
 */
 
 "use strict";
@@ -57,13 +57,24 @@ module.exports.eventlog = function (parent) {
     
     obj.filterLog = function(el) {
         var x = Q('pluginEventLog').querySelectorAll(".eventLogRow");
-        if (x.length)
-        for (const i in Object.values(x)) {
-            if (x[i].textContent.toLowerCase().indexOf(el.value.toLowerCase()) === -1) {
-                x[i].classList.add('eventLogFilterHide');
-            } else {
-                x[i].classList.remove('eventLogFilterHide');
-                x[i].parentNode.appendChild(x[i]);
+        if (x.length) {
+            //reorder by time
+            var times  = new Array();
+            for (const i in Object.values(x)) {
+                times.push([i, x[i].getAttribute('data-time')]);
+            }
+            times.sort(function(a, b) { if (a[1] === b[1]) { return 0; } else { return (a[1] < b[1]) ? -1 : 1; }});
+            for (const i in Object.values(times)) {
+                x[times[i][0]].parentNode.prepend(x[times[i][0]]);
+            }
+            for (const i in Object.values(x)) {
+                if (x[i].textContent.toLowerCase().indexOf(el.value.toLowerCase()) === -1) {
+                    x[i].classList.add('eventLogFilterHide');
+                    x[i].parentNode.appendChild(x[i]);
+                } else {
+                    x[i].classList.remove('eventLogFilterHide');
+                    x[i].parentNode.appendChild(x[i]);
+                }
             }
         }
     };
@@ -114,12 +125,13 @@ module.exports.eventlog = function (parent) {
           }
           data = tmp;
       }
-      var str = '';
+      
       for (var i in data) {
-        str = '';
         var skip = false;
         for (const e of data[i]) {
-          str += '<div class="eventLogRow logType'+e.LogName+'">';
+          var div = document.createElement('div');
+          div.classList.add('eventLogRow');
+          div.classList.add('logType'+e.LogName);
           for (let [k, v] of Object.entries(e)) {
             skip = false;
             switch (k) {
@@ -135,6 +147,7 @@ module.exports.eventlog = function (parent) {
                   v = v[0];
                 }
                 v = v.match(/\d+/g);
+                div.setAttribute('data-time', v);
                 v = new Date(Number(v)).toLocaleDateString() +' '+ new Date(Number(v)).toLocaleTimeString();
               break;
               }
@@ -146,12 +159,16 @@ module.exports.eventlog = function (parent) {
               }
               default: { break; }
             }
-            if (!skip) str += '<span class=eventlogc'+k+' title="'+v+'">'+v+'</span>';
+            if (!skip) {
+               var span = document.createElement('span');
+               span.classList.add('eventlogc'+k);
+               span.setAttribute('title', v);
+               span.innerHTML = v;
+               div.appendChild(span);
+            }
           }
-          str += '</div>';
+          Q(container).appendChild(div);
         }
-        str += '</div>';
-        QA(container, str);
       }
     };
     
