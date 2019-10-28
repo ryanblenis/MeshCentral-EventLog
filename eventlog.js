@@ -409,7 +409,7 @@ module.exports.eventlog = function (parent) {
                 
                 });
               } catch (e) { console.log('Error gathering logs: ', e.stack); } 
-            console.log(new Date().toLocaleString()+' PLUGIN: eventlog: Running gatherlogs')
+            //console.log(new Date().toLocaleString()+' PLUGIN: eventlog: Running gatherlogs')
         }
         case 'getNodeHistory': {
             try {
