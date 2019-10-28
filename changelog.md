@@ -4,8 +4,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Known Issues]
-- Endpoints don't start periodically polling for event data until another eventlog action, or the device is viewed in the admin console, occurs.
--- Note: this can be alleviated by adding `require('entrylog')` to the start of the `createMeshCore` function in the meshcore file.
+- None. Please feel free to submit an issue via GitHub if you find anything.
+
+## [0.0.11] - 2019-10-28
+### Added
+- MongoDB support (prior versions were NeDB only)
+### Fixed
+- Endpoints now start polling for event log data and transmitting back to the server immediately, without having to view the device in the web UI first.
 
 ## [0.0.10] - 2019-10-25
 ### Fixed

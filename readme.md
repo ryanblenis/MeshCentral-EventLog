@@ -1,8 +1,8 @@
 
 # MeshCentral-EventLog
 
-*Current Version: 0.0.10
-Released: 2019-10-25*
+*Current Version: 0.0.11
+Released: 2019-10-28*
 
 Initially conceived as a proof of concept plugin for the [MeshCentral2](https://github.com/Ylianst/MeshCentral) Project to introduce extensibility into the project without requiring the MeshCentral2 project to incorporate everyone's requested changes into the main project, yet allow it to be accomplished by others. In creating this plugin, we're introducing the appropriate hooks into MeshCentral2 to allow extensibility to anyone who can write a plugin, while trying to modify the core project as little as possible.
 
@@ -15,10 +15,9 @@ The proposed PluginHandler for all users to add plugin support for projects such
 ## Installation
 
  1. Download the latest source of this project and place it in your `./meshcentral-data/plugins/eventlog` folder.
- 2. Enable the plugin by adding `eventlog`to the list of allowed plugins under `settings`, e.g.
+ 2. Enable the plugin by adding `eventlog` to the list of allowed plugins under `settings`, e.g.
 
 >     "plugins": {
->          "enabled": true,
 >          "list": [
 >             "eventlog"
 >          ]
@@ -33,7 +32,7 @@ The proposed PluginHandler for all users to add plugin support for projects such
 As a proof of concept, several methods were employed to become familiar with the [MeshCentral2](https://github.com/Ylianst/MeshCentral) project. 
 
 #### Endpoint - Plugin tab
-When viewing a remote endpoint, a new "Event Log" tab now appears under the Plugins tab. A live view currently pulls the latest 100 Errors/Warnings from both the Application/System logs.
+When viewing a remote endpoint, a new "Event Log" tab now appears under the Plugins tab. A live view currently pulls the latest 100 Errors/Warnings from both the Application/System logs. A "History" tab displays the last 20 days of collected event logs. Agents periodically send event log data to the server to be stored.
 
 #### Endpoint - Console tab
 You can see the application logs directly from the console, using the command:
@@ -61,12 +60,11 @@ Let's break that down:
 
  
 # Future
-The possibilities are endless, but this can be used for so much. It's currently only viewing several entries that are queried when you connect to the agent as a proof of concept.
 
-This project can be expanded to include:
-- Log collection for long-term retention on the MeshCentral server
+This project may be expanded to include:
 - Create alerts based on the log entries and user-defined filters
 - When used in conjunction with a task-scheduling plugin could fire off a task on an endpoint in response to an event
+- Thoughts welcome- please feel free to suggest something that might be useful to you
 
 # Screenshots
 ![Device Plugin Page](https://user-images.githubusercontent.com/1929277/67437370-adcd1200-f5be-11e9-9750-99f9c89b4c11.png)

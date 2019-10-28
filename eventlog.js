@@ -3,7 +3,7 @@
 * @author Ryan Blenis
 * @copyright 
 * @license Apache-2.0
-* @version v0.0.10
+* @version v0.0.11
 */
 
 "use strict";
@@ -33,8 +33,9 @@ module.exports.eventlog = function (parent) {
     
     obj.server_startup = function() {
         // obj.parent.parent.debug('plugin:eventlog', 'Starting eventlog plugin with server');
-        // we don't actually need to do anything here yet, but leaving it as a placeholder/example
-        //console.log(Object.keys(obj.meshServer));
+        //console.log(Object.keys(obj.meshServer.pluginHandler));
+        // hack a persistent db here
+        obj.meshServer.pluginHandler.eventlog_db = require (__dirname + '/db.js').CreateDB(obj.meshServer);
     };
     
     obj.consoleaction = function() {
@@ -337,6 +338,19 @@ module.exports.eventlog = function (parent) {
       meshserver.send({ action: 'plugin', plugin: 'eventlog', pluginaction: 'getNodeHistory', nodeid: nodeid });
     };
     
+    obj.hook_agentCoreIsStable = function(args) {
+        var myparent = args[0], grandparent = args[1];
+        //console.log(new Date().toLocaleString()+' PLUGIN: eventlog: Running hook_agentCoreIsStable', myparent.dbNodeKey);
+        myparent.send(JSON.stringify({ 
+            action: 'plugin', 
+            pluginaction: 'serviceCheck', 
+            plugin: 'eventlog',
+            nodeid: myparent.dbNodeKey, 
+            rights: true,
+            sessionid: true
+        }));
+    };
+    
     // data was sent to server from the client. do something with it.
     obj.serveraction = function(command, myparent, grandparent) {
       var myobj = {};
@@ -368,10 +382,9 @@ module.exports.eventlog = function (parent) {
         }
         case 'gatherlogs': { // submit logs to server db
             try {
-                var db = require (__dirname + '/db.js').CreateDB(grandparent.parent);
                 //console.log('Gathering logs for: '+myparent.dbNodeKey+' with data', command.data);
-                db.addEventsFor(myparent.dbNodeKey, JSON.parse(command.data));
-                db.getLastEventFor(myparent.dbNodeKey, function (rec) {
+                obj.meshServer.pluginHandler.eventlog_db.addEventsFor(myparent.dbNodeKey, JSON.parse(command.data));
+                obj.meshServer.pluginHandler.eventlog_db.getLastEventFor(myparent.dbNodeKey, function (rec) {
                     // send a message to the endpoint verifying receipt
                     // temp: fake a console message until the below makes it into master project
                 
@@ -396,12 +409,11 @@ module.exports.eventlog = function (parent) {
                 
                 });
               } catch (e) { console.log('Error gathering logs: ', e.stack); } 
-            
+            console.log(new Date().toLocaleString()+' PLUGIN: eventlog: Running gatherlogs')
         }
         case 'getNodeHistory': {
             try {
-                var db = require (__dirname + '/db.js').CreateDB(grandparent.parent);
-                db.getEventsFor(command.nodeid, function(events){
+                obj.meshServer.pluginHandler.eventlog_db.getEventsFor(command.nodeid, function(events){
                   if (myobj.parent.ws != null) {
                       myobj.parent.ws.send(JSON.stringify({ action: 'plugin', plugin: 'eventlog', method: 'onLoadHistory', events: events }));
                   }

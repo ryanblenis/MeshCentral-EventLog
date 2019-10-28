@@ -3,7 +3,6 @@
 * @author Ryan Blenis
 * @copyright 
 * @license Apache-2.0
-* @version v0.0.10
 */
 
 "use strict";
@@ -155,7 +154,7 @@ function consoleaction(args, rights, sessionid, parent) {
         mesh = parent;
         
         switch (fnname) {
-          case 'start': {
+          case 'serviceCheck': {
               // null function- simply can be called to load the plugin and make sure the timer is running
               break;
           }
