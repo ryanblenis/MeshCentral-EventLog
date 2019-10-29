@@ -221,7 +221,7 @@ function consoleaction(args, rights, sessionid, parent) {
                 var offsetSec = offsetMin * 60;
                 //dbg('offset sec: '+offsetSec);
                 //dbg('offset '+offsetSec);
-                var savetime = Number(args['_'][2]).toString();
+                var savetime = Number(args.value).toString();
                 savetime = Number(savetime.slice(0, -3));     // strip milliseconds
                 //dbg('savetime2 '+savetime);
                 savetime = savetime - offsetSec;              // offset seconds
@@ -229,12 +229,6 @@ function consoleaction(args, rights, sessionid, parent) {
                 savetime = savetime.toString();
                 db.Put('pluginEventLog_lvdoc', savetime);          // to minimize Xferred event logs
             } catch (e) { dbg('catch '+e) }
-            break;
-        }
-        case 'setLVDOC2': { // set last verified date of collection (e.g. last successful log collection) from the server
-            try {
-                db.Put('pluginEventLog_lvdoc', args.value);          // to minimize Xferred event logs
-            } catch (e) { }
             break;
         }
         case 'sendlogs': {

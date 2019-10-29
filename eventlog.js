@@ -393,25 +393,16 @@ module.exports.eventlog = function (parent) {
                 obj.meshServer.pluginHandler.eventlog_db.getLastEventFor(myparent.dbNodeKey, function (rec) {
                     // send a message to the endpoint verifying receipt
                     // temp: fake a console message until the below makes it into master project
-                
+
                     myparent.send(JSON.stringify({ 
-                        action: 'msg', 
-                        type: 'console', 
-                        nodeid: myparent.dbNodeKey, 
-                        rights: true,
-                        sessionid: true,
-                        value: 'plugin eventlog setLVDOC '+rec[0].TimeCreated[0]
-                    }));
-                    // waiting for pull request to master to support this
-                    /*myparent.send(JSON.stringify({ 
                         action: 'plugin', 
-                        pluginaction: 'setLVDOC2', 
+                        pluginaction: 'setLVDOC', 
                         plugin: 'eventlog',
                         nodeid: myparent.dbNodeKey, 
                         rights: true,
                         sessionid: true,
                         value: rec[0].TimeCreated[0]
-                    }));*/
+                    }));
                 
                 });
               } catch (e) { console.log('Error gathering logs: ', e.stack); } 
