@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## [Known Issues]
 - None. Please feel free to submit an issue via GitHub if you find anything.
 
+## [0.0.12] - 2019-10-28
+### Fixed
+- Striping when filtering and changing log types
+
 ## [0.0.11] - 2019-10-28
 ### Added
 - MongoDB support (prior versions were NeDB only)

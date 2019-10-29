@@ -3,7 +3,7 @@
 * @author Ryan Blenis
 * @copyright 
 * @license Apache-2.0
-* @version v0.0.11
+* @version v0.0.12
 */
 
 "use strict";
@@ -76,6 +76,12 @@ module.exports.eventlog = function (parent) {
                     x[i].classList.remove('eventLogFilterHide');
                     x[i].parentNode.appendChild(x[i]);
                 }
+            }
+        }
+        x = Q('pluginEventLog').querySelectorAll(".eventLogFilterHide, .eventLogHide");
+        if (x.length) {
+            for (const i in Object.values(x)) {
+                x[i].parentNode.appendChild(x[i]);
             }
         }
     };
