@@ -13,6 +13,7 @@ module.exports.eventlog = function (parent) {
     
     obj.parent = parent;
     obj.meshServer = parent.parent;
+    obj.db = null;
     
     // This should be updated to contain functions that need to be brought to the
     //   front end for processing. (If they need to be accessed in the GUI, they should be here)
@@ -28,20 +29,34 @@ module.exports.eventlog = function (parent) {
       'eventLogTab',
       'onLoadHistory',
       'loadEventLogMain',
-      'filterLog'
+      'filterLog',
+      '_pluginPermissions',
+      'loadButtons'
     ];
+    
+    obj._pluginPermissions = function() {
+        return {
+            "deviceLiveTab": "Event Log: Live Tab",
+            "deviceHistoryTab": "Event Log: History Tab"
+        };
+    };
     
     obj.server_startup = function() {
         // obj.parent.parent.debug('plugin:eventlog', 'Starting eventlog plugin with server');
         //console.log(Object.keys(obj.meshServer.pluginHandler));
         // hack a persistent db here
         obj.meshServer.pluginHandler.eventlog_db = require (__dirname + '/db.js').CreateDB(obj.meshServer);
+        obj.db = obj.meshServer.pluginHandler.eventlog_db;
     };
     
     obj.consoleaction = function() {
         // due to this code running on the client side, this hook is actually contained 
         //   in the ./modules_meshcore/eventlog.js (note kept here for informational purposes)
     };
+    
+    obj.handleAdminReq = function(req, res, user) {
+        require(__dirname + '/admin.js').admin(obj).req(req, res, user);
+    }
     
     // called to notify the web server that there is a new tab in town
     obj.registerPluginTab = function() {
@@ -132,7 +147,7 @@ module.exports.eventlog = function (parent) {
           }
           data = tmp;
       }
-      
+      var etsi = ['LogAlways', 'Critical', 'Error', 'Warning', 'Info', 'Verbose'];
       for (var i in data) {
         var skip = false;
         for (const e of data[i]) {
@@ -158,8 +173,12 @@ module.exports.eventlog = function (parent) {
                 v = new Date(Number(v)).toLocaleDateString() +' '+ new Date(Number(v)).toLocaleTimeString();
               break;
               }
+              case 'Level': {
+                v = etsi[v];
+                break;
+              }
               case 'LevelDisplayName': {
-                  if (v == 'null') {
+                  if (v == 'null' || v == null) {
                       v = 'Error';
                   }
               break;
@@ -179,8 +198,22 @@ module.exports.eventlog = function (parent) {
       }
     };
     
+    obj.loadButtons = function(config) {
+        if (config.historyEnabled === true) {
+          config.historyLogs.split(',').forEach((l) => {
+            let tpl = `<button class="" onclick="return pluginHandler.eventlog.showLog(this);">${l}</button>`;
+            Q('eventLogHistNav').insertAdjacentHTML('beforeend', tpl);
+          });
+        }
+        config.liveLogs.split(',').forEach((l) => {
+          let tpl = `<button class="" onclick="return pluginHandler.eventlog.showLog(this);">${l}</button>`;
+          Q('eventLogLogNav').insertAdjacentHTML('beforeend', tpl);
+        });
+    };
+    
     obj.onLoadHistory = function(server, message) {
         pluginHandler.eventlog.loadEventLogMain();
+        pluginHandler.eventlog.loadButtons(message.config);
         pluginHandler.eventlog.loadLogs(message.events, 'eventLogHistory');
     };
     
@@ -191,9 +224,8 @@ module.exports.eventlog = function (parent) {
             <button onclick="return pluginHandler.eventlog.eventLogTab(this, 'eventLogHistoryContainer');">History</button>
             <span id=eventLogFilter>Filter: <input type="text" onkeyup="return pluginHandler.eventlog.filterLog(this)"></span>
             </div><div id=eventLogHistoryContainer class=eventLogPage style="display:none;">
-            <div class=eventLogNavClass>
-              <button class=eventLogTabActive onclick="return pluginHandler.eventlog.showLog(this);">Application</button>
-              <button onclick="return pluginHandler.eventlog.showLog(this);">System</button>
+            <div class=eventLogNavClass id=eventLogHistNav>
+              
             </div><div style="clear: both;"></div><div id=eventLogHistory></div></div><div class=eventLogPage id=eventlogentry>
                 <style>
                 #pluginEventLog .eventLogRow > span {
@@ -222,7 +254,7 @@ module.exports.eventlog = function (parent) {
                 #pluginEventLog .eventLogRow:nth-child(odd) {
                       background-color: #CCC;
                 }
-                #pluginEventLog .eventLogRow > span.eventlogcLevelDisplayName {
+                #pluginEventLog .eventLogRow > span.eventlogcLevel {
                     width: 100px;
                 }
                 #pluginEventLog .eventLogRow > span.eventlogcTimeCreated {
@@ -264,8 +296,6 @@ module.exports.eventlog = function (parent) {
                 }
                 </style>
                 <div class=eventLogNavClass id=eventLogLogNav>
-                  <button class=eventLogTabActive onclick="return pluginHandler.eventlog.showLog(this);">Application</button>
-                  <button onclick="return pluginHandler.eventlog.showLog(this);">System</button>
                 </div>
                 <div style="clear: both;"></div>
                 <div id=eventLogLive></div>`;
@@ -282,7 +312,7 @@ module.exports.eventlog = function (parent) {
         return;
       }
       pluginHandler.eventlog.loadEventLogMain();
-      pluginHandler.eventlog.loadLogs(data, 'eventLogLive');
+      pluginHandler.eventlog.loadLogs(data.data, 'eventLogLive');
     };
     
     obj.onRemoteEventLogStateChange = function(xdata, state) {
@@ -341,7 +371,11 @@ module.exports.eventlog = function (parent) {
           pluginHandler.eventlog.livelog = null;
       }
       // get node historical events
-      meshserver.send({ action: 'plugin', plugin: 'eventlog', pluginaction: 'getNodeHistory', nodeid: nodeid });
+      let meshid = null;
+      nodes.forEach(function(n, i) {
+          if (n._id == nodeid) meshid = n.meshid;
+      });
+      meshserver.send({ action: 'plugin', plugin: 'eventlog', pluginaction: 'getNodeHistory', nodeid: nodeid, meshid: meshid });
     };
     
     obj.hook_agentCoreIsStable = function(args) {
@@ -355,12 +389,45 @@ module.exports.eventlog = function (parent) {
             rights: true,
             sessionid: true
         }));
+        obj.db.getConfigFor(myparent.dbNodeKey, myparent.dbMeshKey)
+        .then((cfgBlob) => {
+            myparent.send(JSON.stringify({ 
+                action: 'plugin', 
+                pluginaction: 'setConfigBlob', 
+                plugin: 'eventlog',
+                nodeid: myparent.dbNodeKey, 
+                rights: true,
+                sessionid: true,
+                cfg: cfgBlob
+            }));
+        });
     };
     
     // data was sent to server from the client. do something with it.
     obj.serveraction = function(command, myparent, grandparent) {
       var myobj = {};
       myobj.parent = myparent;
+
+      if (command.uid) { // check to see if config is valid/current, if not, send update
+        obj.db.checkConfigAuth(command.uid)
+        .then((cnt) => {
+          if (cnt == 0) {
+              obj.db.getConfigFor(myparent.dbNodeKey, myparent.dbMeshKey)
+              .then((cfgBlob) => {
+                myparent.send(JSON.stringify({ 
+                    action: 'plugin', 
+                    pluginaction: 'setConfigBlob', 
+                    plugin: 'eventlog',
+                    nodeid: myparent.dbNodeKey, 
+                    rights: true,
+                    sessionid: true,
+                    cfg: cfgBlob
+                }));
+              });
+          }
+        });
+      }
+      
       switch (command.pluginaction) {
         case 'sendlog': {
           command.method = 'fe_on_message';
@@ -410,13 +477,61 @@ module.exports.eventlog = function (parent) {
         }
         case 'getNodeHistory': {
             try {
-                obj.meshServer.pluginHandler.eventlog_db.getEventsFor(command.nodeid, function(events){
-                  if (myobj.parent.ws != null) {
-                      myobj.parent.ws.send(JSON.stringify({ action: 'plugin', plugin: 'eventlog', method: 'onLoadHistory', events: events }));
-                  }
+                obj.db.getConfigFor(command.nodeid, command.meshid)
+                .then((cfg) => {
+                  obj.db.getEventsFor(command.nodeid, cfg, function(events){
+                    if (myobj.parent.ws != null) {
+                        myobj.parent.ws.send(JSON.stringify({ action: 'plugin', plugin: 'eventlog', method: 'onLoadHistory', events: events, config: cfg }));
+                    }
+                  });
                 });
-            } catch (e) { console.log('PLUGIN: eventlog: getNodeHistory error'); }
+            } catch (e) { console.log('PLUGIN: eventlog: getNodeHistory error: ', e); }
           break;
+        }
+        case 'adminSaveConfig': {
+            let opts = {...command.opts, ...{}};
+            var selected = null;
+            if (command.id == '_default') {
+                obj.db.updateDefaultConfig(opts)
+                .catch((e) => console.log('EVENTLOG: Something went wrong saving the config'));
+            } else {
+                obj.db.updateConfig(command.id, opts)
+                .then((d) => {
+                  selected = d.insertedId;
+                  return obj.db.getAllConfigSets();
+                })
+                .then((d) => {
+                  var x = { action: "plugin", plugin: "eventlog", method: "adminUpdateConfigSets", sets: d };
+                  x.selected = selected;
+                  myobj.parent.ws.send(JSON.stringify(x));
+                })
+                .catch((e) => console.log('EVENTLOG: Something went wrong saving the config', e));
+            }
+            break;
+        }
+        case 'adminDeleteConfig': {
+            let id = command.id;
+            obj.db.deleteConfigSet(command.id)
+            .then((d) => {
+              var x = { action: "plugin", plugin: "eventlog", method: "adminConfigDeleted", id: command.id };
+              myobj.parent.ws.send(JSON.stringify(x));
+            })
+            .catch((e) => console.log('EVENTLOG: Something went wrong deleting the config'));
+            break;
+        }
+        case 'adminAssignConfig': { // configId, nodes, meshes
+            obj.db.assignConfig(command.configId, command.selection)
+            .then(obj.db.getConfigAssignments)
+            .then((d) => {
+              var configAssignments = [];
+              d.forEach((s) => {
+                configAssignments.push({ asset: s.asset, configId: s.configId });
+              });
+              var x = { action: "plugin", plugin: "eventlog", method: "setsAssigned", data: configAssignments};
+              myobj.parent.ws.send(JSON.stringify(x));
+            })
+            .catch((e) => console.log('EVENTLOG: Something went wrong assigning the config: ', e));
+            break;
         }
         default: {
           break;

@@ -1,0 +1,420 @@
+<html>
+<head>
+    <script type="text/javascript" src="scripts/common-0.0.1.js"></script>
+    <script type="text/javascript">
+      var configSets = {{{configSets}}};
+      var configAssignments = {{{configAssignments}}};
+        
+      function eventLogTab (tabOption, contentId) {
+          var parent = tabOption.parentElement;
+          var children = parent.querySelectorAll("button");
+          for (const i in Object.values(children)) {
+                children[i].className = '';
+          }
+          tabOption.className = 'eventLogTabActive';
+          var which = tabOption.innerHTML;
+          var x = Q('eventLogAdmin').querySelectorAll(".eventLogPage");
+          
+          if (x.length)
+          for (const i in Object.values(x)) {
+                x[i].style.display = 'none';
+          }
+          QS(contentId).display = '';
+      }
+      function addNewConfigSet() {
+        loadConfigSet({
+          id: '_new',
+          name: 'New Config',
+          liveLogs: 'Application,System',
+          liveNum: 100,
+          liveEntryTypes: [2,3],
+          historyEnabled: true,
+          historyLogs: 'Application,System',
+          historyEntryTypes: [2,3]
+        });
+        let cfdd = document.querySelector('#elconfigSet');
+        let newopt = `<option value="_new">New Config</option>`;
+        cfdd.insertAdjacentHTML('beforeend', newopt);
+        cfdd.value = '_new';
+        return false;
+      }
+      
+      function loadConfigSet(set) {
+        var options = {};
+        if (set == null) {
+          if (configSets.length > 0) {
+            configSets.forEach((s) => {
+              if (s.default == true) options = s;
+            });
+          } else {
+             options = {
+              id: '',
+              name: 'Default',
+              liveLogs: 'Application,System',
+              liveNum: 100,
+              liveEntryTypes: [2,3],
+              historyEnabled: true,
+              historyLogs: 'Application,System',
+              historyEntryTypes: [2,3]
+            };
+          }
+        } else { // get options from config
+          if (typeof set == 'object') var options = set;
+        }
+        for (var [k, v] of Object.entries(options)) {
+          switch(k) {
+            case 'historyEnabled':
+              if (v === true) {
+                Q('el'+k).checked = true;
+              } else {
+                Q('el'+k).checked = false;
+              }
+            break;
+            case 'liveLogs':
+            case 'historyLogs':
+            case 'liveNum':
+            case 'name':
+              Q('el'+k).value = v;
+            break;
+            case 'id':
+            case '_id':
+              if (options.default == true)  Q('elid').value = '';
+              else Q('elid').value = v;
+            break;
+            case 'liveEntryTypes':
+            case 'historyEntryTypes':
+              v = v.map(el => Number(el));
+              Q('el'+k).querySelectorAll('option').forEach(function(opt){
+                opt.selected = v.includes(Number(opt.value));
+              });
+            break;
+          }
+        }
+        
+      }
+      
+      function saveConfig() {
+        var configId = Q('elid').value;
+
+        var x = {
+          name: Q('elname').value,
+          liveLogs: Q('elliveLogs').value,
+          liveNum: Q('elliveNum').value,
+          liveEntryTypes: Array.from(document.querySelectorAll('#elliveEntryTypes option:checked')).map(el => el.value),
+          historyEnabled: (Q('elhistoryEnabled').checked) ? true : false,
+          historyLogs: Q('elhistoryLogs').value,
+          historyEntryTypes: Array.from(document.querySelectorAll('#elhistoryEntryTypes option:checked')).map(el => el.value)
+        };
+        
+        if (configId == '') { // save defaults
+          parent.meshserver.send({ action: 'plugin', plugin: 'eventlog', pluginaction: 'adminSaveConfig', id: '_default', opts: x });
+          configSets.forEach((s, i) => {
+            if (s.default == true) configSets.push({...x, ...{ default: true }});
+          });
+        } else { // save by id or _new
+          parent.meshserver.send({ action: 'plugin', plugin: 'eventlog', pluginaction: 'adminSaveConfig', id: configId, opts: x });
+          var upd = false;
+          configSets.forEach((s, i) => {
+            if (s._id == x.id) { 
+              configSets[i] = x;
+              upd = true;
+            }
+            if (!upd) configSets.push(x);
+          });
+        }
+        updateConfigSetName(configId, x.name);
+        
+      }
+      
+      function changeConfig(el) {
+          if (el.value == '') loadConfigSet();
+          else {
+            configSets.forEach((s) => {
+              if (s._id == el.value) loadConfigSet(s);
+            });
+          }
+          let cs = document.querySelectorAll('#elconfigSet option');
+          for (const i in Object.entries(cs)){
+            if (cs[i].value == '_new') cs[i].parentNode.removeChild(cs[i]);
+          }
+      }
+      
+      function deleteConfig() {
+        var configId = Q('elid').value;
+        if (configId == '') {
+          parent.setDialogMode(2, 'Cannot Delete Default', 1, null, 'The default set can only be changed, not deleted.');
+          return false;
+        } else if (configId == '_new') {
+          let cs = document.querySelectorAll('#elconfigSet option');
+          for (const i in Object.entries(cs)){
+            if (cs[i].value == '_new') cs[i].parentNode.removeChild(cs[i]);
+          }
+          Q('elconfigSet').value = '';
+          loadConfigSet();
+        } else {
+          parent.meshserver.send({ action: 'plugin', plugin: 'eventlog', pluginaction: 'adminDeleteConfig', id: configId });
+        }
+        return false;
+      }
+      
+      function updateConfigSetName(id, name) {
+        let cs = document.querySelectorAll('#elconfigSet option');
+        for (const i in Object.entries(cs)){
+          if (cs[i].value == id) cs[i].text = name;
+        }
+      }
+      
+      function updateAssignRows() {
+        let dRows = document.querySelectorAll('.eldataRow');
+        dRows.forEach((r) => {
+            r.parentNode.removeChild(r);
+        });
+        var defaultConfigName = null;
+        configSets.forEach((s) => {
+          if (s.default === true) defaultConfigName = s.name;
+        });
+        var meshRowIns = document.querySelector('#elNodes');
+        var nodeRowIns = document.querySelector('#assignTbl');
+        for (var m in parent.meshes) { 
+            var item = {
+                mtype: parent.meshes[m].mtype,
+                _id: parent.meshes[m]._id,
+                name: parent.meshes[m].name,
+                currentConfigName: 'None'
+            };
+            
+            if (item.mtype == 2) {
+                configAssignments.forEach((a) => {
+                    if (a.asset == item._id) {
+                      configSets.forEach((s) => {
+                          if (s._id == a.configId) item.currentConfigName = s.name;
+                          else if (a.configId == 'default') item.currentConfigName = defaultConfigName;
+                      })
+                    }
+                });
+                let tpl = `<tr class="eldataRow">
+                  <td><label><input type="checkbox" name="assign[]" value="${item._id}"> ${item.name}</label></td>
+                  <td>&nbsp;</td>
+                  <td>${item.currentConfigName}</td>
+                </tr>`;
+                meshRowIns.insertAdjacentHTML('beforebegin', tpl);
+            }
+        }
+        
+        parent.nodes.forEach(function(i) {
+            var item = {...i, ...{
+                currentConfigName: 'None'
+            }};
+            if (item.mtype == 2) {
+                configAssignments.forEach((a) => {
+                    if (a.asset == item._id) {
+                      configSets.forEach((s, i) => {
+                          if (s._id == a.configId) item.currentConfigName = s.name;
+                          else if (a.configId == 'default') item.currentConfigName = defaultConfigName;
+                      })
+                    }
+                });
+                item.meshName = parent.meshes[item['meshid']].name;
+                let tpl = `<tr class="eldataRow">
+                  <td><label><input type="checkbox" name="assign[]" value="${item._id}"> ${item.name}</label></td>
+                  <td>${item.meshName}</td>
+                  <td>${item.currentConfigName}</td>
+                </tr>`;
+                nodeRowIns.insertAdjacentHTML('beforeend', tpl);
+            }
+        });
+      }
+      
+      function assignSet(clear) {
+          if (clear == '_clear') {
+            var setId = '_clear';
+          } else {
+            var setId = Q('elassignSet').value;
+          }
+          var cboxes = document.getElementsByName("assign[]");
+          var sel = [];
+          
+          cboxes.forEach((n) => {
+              if (n.checked) sel.push(n.value);
+          });
+          parent.meshserver.send({ 'action': 'plugin', 'plugin': 'eventlog', 'pluginaction': 'adminAssignConfig', 'configId': setId, 'selection': sel });
+      }
+      
+      function checkForDefault() {
+        if (configSets.length == 0) {
+          saveConfig();
+        }
+      }
+      
+      function updateConfigSetsSelects(sel) {
+        var e1 = Q('elassignSet');
+        var e2 = Q('elconfigSet');
+        var e1opts = e1.querySelectorAll('option');
+        var e2opts = e2.querySelectorAll('option');
+        
+        e1opts.forEach((o, i) => {
+          if (o.value != '') {
+            e1opts[i].parentNode.removeChild(e1opts[i]);
+          }
+        });
+        e2opts.forEach((o, i) => {
+          if (o.value != '') {
+            e2opts[i].parentNode.removeChild(e2opts[i]);
+          }
+        });
+        configSets.forEach(function(i) {
+          let tpl = `<option value="${i._id}">${i.name}</option>`
+          if (!i.default) {
+            e1.insertAdjacentHTML('beforeend', tpl);
+            e2.insertAdjacentHTML('beforeend', tpl);
+          }
+        });
+        if (sel != null && sel != 'undefined') e2.value = sel;
+      }
+      
+      parent.pluginHandler['eventlog'].adminUpdateConfigSets = function(args, msg) {
+          configSets = msg.sets;
+          updateConfigSetsSelects(msg.selected);
+      }
+      
+      parent.pluginHandler['eventlog'].adminConfigDeleted = function(args, msg) {
+          configSets.forEach((s, i) => {
+            if (s._id != msg.id) return;
+            delete configSets[i];
+          });
+          let cs = document.querySelectorAll('#elconfigSet option');
+          for (const i in Object.entries(cs)){
+            if (cs[i].value == msg.id) cs[i].parentNode.removeChild(cs[i]);
+          }
+          loadConfigSet();
+          updateConfigSetsSelects();
+      }
+      
+      parent.pluginHandler['eventlog'].setsAssigned = function(args, msg) {
+          configAssignments = msg.data;
+          updateAssignRows();
+      }
+    </script>
+</head>
+<style>
+    body {
+      font-family: "Trebuchet MS", Arial, Helvetica, sans-serif;
+    }
+    #eventLogAdminNav {
+      overflow: hidden;
+      border: 1px solid #ccc;
+      background-color: #f1f1f1;
+    }
+    .eventLogNavClass button {
+      background-color: inherit;
+      float: left;
+      border: none;
+      outline: none;
+      cursor: pointer;
+      padding: 10px 12px;
+      transition: 0.3s;
+    }
+    .eventLogNavClass button:hover {
+      background-color: #ddd;
+    }
+    .eventLogNavClass button.eventLogTabActive {
+      background-color: #ccc;
+    }
+    .eventLogPage {
+      padding: 6px 12px;
+      border: 1px solid #ccc;
+      border-top: none;
+    }
+
+    .elMSel {
+      height: 100px;
+      width: 100px;
+    }
+
+    .elLongTxt {
+      width: 500px;
+    }
+
+    #elConfigBtns {
+      float:right;
+    }
+</style>
+<body>
+<div id="eventLogAdmin">
+  <div class=eventLogNavClass id=eventLogAdminNav>
+      <button class=eventLogTabActive onclick="return eventLogTab(this, 'elAssignment');">Assignment</button>
+      <button onclick="return eventLogTab(this, 'elConfigSets');">Config Sets</button>
+      <!-- button onclick="return eventLogTab(this, 'elPermissions');">Permissions</button -->
+  </div>
+  <div id="elcontent">
+    <div class="eventLogPage" id="elAssignment">
+          <div id="elAssignChoice">
+            <span>Assign Set:</span>&nbsp;<select name="assignSet" id="elassignSet">
+              <option value="">Default</default>
+              
+            </select>&nbsp;
+            <button onclick="return assignSet();">Assign</button>
+            <button onclick="return assignSet('_clear');">Clear</button>
+          </div>
+          <table id="assignTbl">
+          <tr id="elMeshes"><th style="text-align: left;">Mesh</th><th></th><th style="text-align: right;">Current Configuration</th></tr>
+
+          <tr id="elNodes"><th style="text-align: left;">Node</th><th>Mesh</th><th style="text-align: right;">Current Configuration</th></tr>
+      </table>
+    </div>
+    <div class="eventLogPage" id="elConfigSets" style="display:none;">
+      <select name="configSet" id="elconfigSet" onchange="return changeConfig(this);">
+        <option value="">Default</default>
+      </select>
+      [ <a href="#" onclick="return addNewConfigSet();">+</a> ]
+      <div id="editConfig">
+          <table>
+            <tr><td>Name</td><td><input type="text" id="elname" name="elName" value="" class="elLongTxt"></td></tr>
+            <tr><td colspan="2" style="font-weight: bold; text-align:center;">Live Config</td></tr>
+            <tr><td>Logs (comma delimeted)</td><td><input type="text" id="elliveLogs" name="liveLogs" class="elLongTxt"></td></tr>
+            <tr><td>How many entries from each log to display</td><td><input type="text" id="elliveNum" name="liveNum"></td></tr>
+            <tr><td>Entry Types</td><td>
+              <select id="elliveEntryTypes" name="liveEntryTypes[]" multiple class="elMSel">
+                <option value="0">LogAlways</option>
+                <option value="1">Critical</option>
+                <option value="2">Error</option>
+                <option value="3">Warning</option>
+                <option value="4">Info</option>
+                <option value="5">Verbose</option>
+              </select><td>
+            </tr>
+            <tr><td colspan="2" style="font-weight: bold; text-align:center;">History Config</td></tr>
+            <tr><td>Enabled</td><td><input type="checkbox" id="elhistoryEnabled" name="historyEnabled"></td></tr>
+            <tr><td>LogName's</td><td><input type="text" id="elhistoryLogs" name="historyLogs" class="elLongTxt"></td></tr>
+            <tr><td>Entry Types</td><td>
+              <select id="elhistoryEntryTypes" name="historyEntryTypes[]" multiple class="elMSel">
+                <option value="0">LogAlways</option>
+                <option value="1">Critical</option>
+                <option value="2">Error</option>
+                <option value="3">Warning</option>
+                <option value="4">Info</option>
+                <option value="5">Verbose</option>
+              </select><td>
+            </tr>
+          <tr><td>&nbsp;</td><td><span id="elConfigBtns"><button onclick="return saveConfig();">Save</button> <button onclick="return deleteConfig();">Delete</button></span></td></tr>
+          </table>
+          <input type="hidden" name="configId" id="elid" value="" />
+      </div>
+      <script type="text/javascript">
+        loadConfigSet();
+        checkForDefault();
+        updateAssignRows();
+        updateConfigSetsSelects();
+      </script>
+    </div>
+    
+    <!-- h2>Configuration Editor</h2>
+    <div id="elconfigEditor"></div-->
+    
+    <!-- div id="elPermissions" class="eventLogPage" style="display:none;">
+      Permissions here...
+    </div -->
+  </div>
+</div>
+</body>
+</html>

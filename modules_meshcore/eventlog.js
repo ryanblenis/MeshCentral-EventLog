@@ -12,14 +12,16 @@ var obj = this;
 var _sessionid;
 var isWsconnection = false;
 var wscon = null;
+var debug_flag = false;
 
 var dbg = function(str) {
+    if (debug_flag !== true) return;
     var fs = require('fs');
     var logStream = fs.createWriteStream('eventlog.txt', {'flags': 'a'});
     // use {'flags': 'a'} to append and {'flags': 'w'} to erase and write a new file
     logStream.write('\n'+new Date().toLocaleString()+': '+ str);
     logStream.end('\n');
-};
+}
 
 
 var sendlogCallback = function (retObj) {
@@ -46,6 +48,10 @@ var getlogCallback = function (output) {
     }
     if (isWsconnection) {
         var response = {};
+        var db = require('SimpleDataStore').Shared();
+        var cfg = db.Get('pluginEventLog_cfg');
+        cfg = JSON.parse(cfg);
+        response.uid = cfg.uid;
         response.data = JSON.parse(output.stdout);
         wscon.write(new Buffer(JSON.stringify(response)));
     }
@@ -57,7 +63,8 @@ var runPwshCollector = function(func, passedParams) {
         num: 10,
         entryType: 'Error,Warning',
         convertToJson: true,
-        sinceTime: null
+        sinceTime: null,
+        entryTypeNum: null
     };
     const params = Object.assign({}, defaultParams, passedParams);
     var fileRand = Math.random().toString(32).replace('0.', '');
@@ -69,7 +76,6 @@ var runPwshCollector = function(func, passedParams) {
         sinceTimePre = '$sinceTime = (Get-Date 01.01.1970)+([System.TimeSpan]::fromseconds('+Number(params.sinceTime-1)+'));';
         sinceTimeStr = 'StartTime=$sinceTime;';
     }
-    
     var entryTypes = {
       'LogAlways': 0,
       'Critial': 1,
@@ -79,16 +85,19 @@ var runPwshCollector = function(func, passedParams) {
       'Verbose': 5
     };
     var entryTypeCodes = [];
-    var etObj = params.entryType.split(',');
-    for (var i in etObj) {
-        entryTypeCodes.push(entryTypes[etObj[i]]); 
+    if (params.entryTypeNum === null) {
+        var etObj = params.entryType.split(',');
+        for (var i in etObj) {
+            entryTypeCodes.push(entryTypes[etObj[i]]); 
+        }
+    } else {
+        entryTypeCodes = params.entryTypeNum;
     }
-    
     if (params.convertToJson) {
       convertToJsonText = " | convertTo-JSON -Compress"
     }
     var ret = {};
-    ret.child = require('child_process').execFile("C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",["-command \""+sinceTimePre+"Get-WinEvent -FilterHashTable @{"+sinceTimeStr+"LogName='"+params.fromLog.split(',').join("','")+"'; Level="+entryTypeCodes.join(',')+"} -MaxEvents "+params.num+" | Select-Object LogName, LevelDisplayName, TimeCreated, ProviderName, Message, Id "+convertToJsonText+" | Out-File "+fileName+" -Encoding UTF8\""]);
+    ret.child = require('child_process').execFile("C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",["-command \""+sinceTimePre+"Get-WinEvent -FilterHashTable @{"+sinceTimeStr+"LogName='"+params.fromLog.split(',').join("','")+"'; Level="+entryTypeCodes.join(',')+"} -MaxEvents "+params.num+" | Select-Object LogName, Level, TimeCreated, ProviderName, Message, Id "+convertToJsonText+" | Out-File "+fileName+" -Encoding UTF8\""]);
     ret.child.stdout.str = ''; ret.child.stdout.on('data', function (c) { this.str += c.toString(); });
     ret.child.stderr.str = ''; ret.child.stderr.on('data', function (c) { this.str += c.toString(); });
     //ret.child.on('exit', func(ret));
@@ -105,9 +114,9 @@ var runPwshCollector = function(func, passedParams) {
                 func(o);
             }
             require('fs').unlinkSync(fileName);
-            //dbg(sinceTimePre+"Get-WinEvent -FilterHashTable @{"+sinceTimeStr+"LogName='"+params.fromLog.split(',').join("','")+"'; Level="+entryTypeCodes.join(',')+"} -MaxEvents "+params.num+" | Select-Object LogName, LevelDisplayName, TimeCreated, ProviderName, Message, Id "+convertToJsonText);
+            dbg('Running powershell: '+sinceTimePre+"Get-WinEvent -FilterHashTable @{"+sinceTimeStr+"LogName='"+params.fromLog.split(',').join("','")+"'; Level="+entryTypeCodes.join(',')+"} -MaxEvents "+params.num+" | Select-Object LogName, Level, TimeCreated, ProviderName, Message, Id "+convertToJsonText+" | Out-File "+fileName);
         } catch (e) {
-            dbg(e.stack);
+            dbg('Powershell run error: '+e.stack);
         }
         
     });
@@ -115,17 +124,31 @@ var runPwshCollector = function(func, passedParams) {
 
 var gatherlogsCallback = function(output) {
     mesh = require('MeshAgent');
-    mesh.SendCommand({ "action": "plugin", "plugin": "eventlog", "pluginaction": "gatherlogs", "data": output.stdout});
+    var db = require('SimpleDataStore').Shared();
+    var cfg = db.Get('pluginEventLog_cfg');
+    cfg = JSON.parse(cfg);
+    var cuid = null;
+    if (cfg.uid != null) {
+      cuid = cfg.uid;
+    }
+    mesh.SendCommand({ "action": "plugin", "plugin": "eventlog", "pluginaction": "gatherlogs", "uid": cuid, "data": output.stdout});
 };
 
 var capturePeriodicEventLog = function() {
     if (process.platform != 'win32') {
+      dbg('Periodic runner not running (non-win32)');
       return false;
     }
+    dbg('Periodic runner starting');
     var db = require('SimpleDataStore').Shared();
     // this is where we collect logs, either to a file to be Xferred later, or now, whichev.
     var lvdoc = db.Get('pluginEventLog_lvdoc');
-    runPwshCollector(gatherlogsCallback, {fromLog: 'System,Application', num: 200, sinceTime: lvdoc});
+    var cfg = db.Get('pluginEventLog_cfg');
+    cfg = JSON.parse(cfg);
+    var fromLogs = cfg.historyLogs;
+    var entryTypes = cfg.historyEntryTypes;
+    if (cfg.historyEnabled !== true) return;
+    runPwshCollector(gatherlogsCallback, {fromLog: fromLogs, num: 200, sinceTime: lvdoc, entryTypeNum: entryTypes });
 };
 
 if (periodicEventLogTimer == null) { periodicEventLogTimer = setInterval(capturePeriodicEventLog, 1*60*1000); } // 1 minute(s)
@@ -208,8 +231,15 @@ function consoleaction(args, rights, sessionid, parent) {
           break; 
         }
         case 'getlivelogs': {
-                runPwshCollector(getlogCallback, {fromLog: 'Application', num: 100, entryType: 'Error,Warning', convertToJson: true});
-                runPwshCollector(getlogCallback, {fromLog: 'System', num: 100, entryType: 'Error,Warning', convertToJson: true});
+            var db = require('SimpleDataStore').Shared();
+            var cfg = db.Get('pluginEventLog_cfg');
+            cfg = JSON.parse(cfg);
+            var logList = cfg.liveLogs.split(',');
+            try { 
+              for (var i in logList) {
+                runPwshCollector(getlogCallback, {'fromLog': logList[i], 'num': Number(cfg.liveNum), 'entryTypeNum': cfg.historyEntryTypes, 'convertToJson': true});
+              }
+            } catch(e) { dbg('getlivelogs error '+e); }
             break;
         }
         case 'setLVDOC': { // set last verified date of collection (e.g. last successful log collection) from the server
@@ -227,8 +257,9 @@ function consoleaction(args, rights, sessionid, parent) {
                 savetime = savetime - offsetSec;              // offset seconds
                 savetime += 2; // timers are fuzzy. two second delay so we don't reXmit the last message
                 savetime = savetime.toString();
+                dbg('setting lvdoc to '+savetime);
                 db.Put('pluginEventLog_lvdoc', savetime);          // to minimize Xferred event logs
-            } catch (e) { dbg('catch '+e) }
+            } catch (e) { dbg('setLVDOC error: '+e) }
             break;
         }
         case 'sendlogs': {
@@ -238,6 +269,15 @@ function consoleaction(args, rights, sessionid, parent) {
                   "pluginaction": "sendlogs",
                   "data": JSON.stringify({test: "testing"})
           });
+          break;
+        }
+        case 'setConfigBlob': {
+            try {
+                var db = require('SimpleDataStore').Shared();
+                var cfg = args.cfg;
+                db.Put('pluginEventLog_cfg', cfg);
+                dbg('setting config '+cfg);
+            } catch (e) { dbg('setconfigBlob '+e); }
           break;
         }
       }
