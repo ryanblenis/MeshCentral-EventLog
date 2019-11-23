@@ -146,6 +146,22 @@ module.exports.CreateDB = function(meshserver) {
               .catch((e) => console.log('EVENTLOG: Error getting config for: ', e));
         });
       };
+          obj.checkForDefault = function() {
+              obj.getAllConfigSets()
+              .then((cfgs) => {
+                  if (cfgs.length == 0) {
+                      obj.updateDefaultConfig({
+                        name: 'Default',
+                        liveLogs: 'Application,System',
+                        liveNum: 100,
+                        liveEntryTypes: [2,3],
+                        historyEnabled: true,
+                        historyLogs: 'Application,System',
+                        historyEntryTypes: [2,3]
+                      });
+                  }
+              });
+          };
     });  
     } else { // use NeDb
         Datastore = require('nedb');
@@ -286,6 +302,23 @@ module.exports.CreateDB = function(meshserver) {
             })
             .catch((e) => console.log('EVENTLOG: Error getting config for: ', e));
         });
+      };
+      
+      obj.checkForDefault = function() {
+          obj.getAllConfigSets()
+          .then((cfgs) => {
+              if (cfgs.length == 0) {
+                  obj.updateDefaultConfig({
+                    name: 'Default',
+                    liveLogs: 'Application,System',
+                    liveNum: 100,
+                    liveEntryTypes: [2,3],
+                    historyEnabled: true,
+                    historyLogs: 'Application,System',
+                    historyEntryTypes: [2,3]
+                  });
+              }
+          });
       };
     }
     

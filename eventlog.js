@@ -47,6 +47,7 @@ module.exports.eventlog = function (parent) {
         // hack a persistent db here
         obj.meshServer.pluginHandler.eventlog_db = require (__dirname + '/db.js').CreateDB(obj.meshServer);
         obj.db = obj.meshServer.pluginHandler.eventlog_db;
+        obj.db.checkForDefault();
     };
     
     obj.consoleaction = function() {
