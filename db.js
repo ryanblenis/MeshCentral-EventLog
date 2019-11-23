@@ -322,6 +322,7 @@ module.exports.CreateDB = function(meshserver) {
       };
     }
     
+    obj.checkForDefault();
     
     return obj;
 }
