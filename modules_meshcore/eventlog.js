@@ -49,8 +49,7 @@ var getlogCallback = function (output) {
     if (isWsconnection) {
         var response = {};
         var db = require('SimpleDataStore').Shared();
-        var cfg = db.Get('pluginEventLog_cfg');
-        cfg = JSON.parse(cfg);
+        var cfg = getEventLogConfig();
         response.uid = cfg.uid;
         response.data = JSON.parse(output.stdout);
         wscon.write(new Buffer(JSON.stringify(response)));
@@ -125,8 +124,7 @@ var runPwshCollector = function(func, passedParams) {
 var gatherlogsCallback = function(output) {
     mesh = require('MeshAgent');
     var db = require('SimpleDataStore').Shared();
-    var cfg = db.Get('pluginEventLog_cfg');
-    cfg = JSON.parse(cfg);
+    var cfg = getEventLogConfig();
     var cuid = null;
     if (cfg.uid != null) {
       cuid = cfg.uid;
@@ -143,8 +141,7 @@ var capturePeriodicEventLog = function() {
     var db = require('SimpleDataStore').Shared();
     // this is where we collect logs, either to a file to be Xferred later, or now, whichev.
     var lvdoc = db.Get('pluginEventLog_lvdoc');
-    var cfg = db.Get('pluginEventLog_cfg');
-    cfg = JSON.parse(cfg);
+    var cfg = getEventLogConfig();
     var fromLogs = cfg.historyLogs;
     var entryTypes = cfg.historyEntryTypes;
     if (cfg.historyEnabled !== true) return;
@@ -232,8 +229,7 @@ function consoleaction(args, rights, sessionid, parent) {
         }
         case 'getlivelogs': {
             var db = require('SimpleDataStore').Shared();
-            var cfg = db.Get('pluginEventLog_cfg');
-            cfg = JSON.parse(cfg);
+            var cfg = getEventLogConfig();
             var logList = cfg.liveLogs.split(',');
             try { 
               for (var i in logList) {
@@ -281,6 +277,28 @@ function consoleaction(args, rights, sessionid, parent) {
           break;
         }
       }
+}
+
+function getEventLogConfig() {
+    var cfg = db.Get('pluginEventLog_cfg');
+    if (cfg == '' || cfg == null) return getDefaultConfig();
+    try {
+        cfg = JSON.parse(cfg);
+    } catch (e) { return getDefaultConfig(); }
+    return cfg;
+}
+
+function getDefaultConfig() {
+    return {
+     id: '',
+     name: 'Default',
+     liveLogs: 'Application,System',
+     liveNum: 100,
+     liveEntryTypes: [2,3],
+     historyEnabled: true,
+     historyLogs: 'Application,System',
+     historyEntryTypes: [2,3]
+   };
 }
 
 function sendConsoleText(text, sessionid) {
