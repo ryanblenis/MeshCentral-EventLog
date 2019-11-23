@@ -66,7 +66,7 @@ module.exports.CreateDB = function(meshserver) {
               }
               if (opts.historyEntryTypes) {
                 proj.Level = { $in: opts.historyEntryTypes.map((n) => Number(n)) };
-              } console.log('eproj ', proj);
+              }
               obj.eventsFile.find(proj).sort({ TimeCreated: -1 }).toArray(function (err, events) {
                   callback(events);
               });
@@ -170,9 +170,19 @@ module.exports.CreateDB = function(meshserver) {
                 obj.eventsFile.insert(e);
             }
         };
-        
-        obj.getEventsFor = function(nodeid, callback) {
-            obj.eventsFile.find({ nodeid: nodeid }).sort({ TimeCreated: -1 }).exec(function (err, events) {
+        obj.getEventsFor = function(nodeid, opts, callback) {
+            let proj = { nodeid: nodeid };
+            if (opts.historyEnabled === false) {
+              callback(null);
+              return;
+            }
+            if (opts.historyLogs) {
+              proj.LogName = { $in: opts.historyLogs.split(',') };
+            }
+            if (opts.historyEntryTypes) {
+              proj.Level = { $in: opts.historyEntryTypes.map((n) => Number(n)) };
+            }
+            obj.eventsFile.find(proj).sort({ TimeCreated: -1 }).exec(function (err, events) {
                 callback(events);
             });
         };
@@ -181,13 +191,16 @@ module.exports.CreateDB = function(meshserver) {
                 callback(events);
             });
         };
-        obj.updateDefaultConfig = function(args, callback) {
+        obj.updateDefaultConfig = function(args) {
             args.type = 'configSet';
-            obj.settingsFile.update({default: true}, { $set: args }, {upsert: true}, callback);
+            args.uid = Math.random().toString(32).replace('0.', '');
+            return obj.settingsFile.update({default: true}, { $set: args }, {upsert: true});
         };
         obj.updateConfig = function(id, args) {
             return new Promise(function(resolve, reject) {
                 if (args._id != null) delete args._id;
+                args.type = "configSet";
+                args.uid = Math.random().toString(32).replace('0.', '');
                 args.type = "configSet";
                 if (id == '_new') { 
                     obj.settingsFile.insert(args, function(err, newDocs) { 
@@ -245,6 +258,35 @@ module.exports.CreateDB = function(meshserver) {
                 });
             });
         }
+        obj.checkConfigAuth = function(uid) {
+          return obj.settingsFile.count( { type: "configSet", uid: uid } );
+        }
+        obj.getConfigFor = function(nodeId, meshId) {
+          return new Promise(function(resolve, reject) {
+            obj.getConfigAssignments()
+            .then((ca) => {
+                var configId = 'default';
+                ca.forEach((a) => {
+                  if (a.asset == meshId) configId = a.configId;
+                });
+                ca.forEach((a) => {
+                  if (a.asset == nodeId) configId = a.configId;
+                });
+                return configId;
+            }).then((configId) => {
+              var configBlob = null;
+              obj.getAllConfigSets()
+              .then((sets) => {
+                sets.forEach((s) => {
+                  if (configId == 'default' && s.default === true) configBlob = s;
+                  else if (s._id == configId) configBlob = s;
+                });
+                resolve(configBlob);
+              });
+            })
+            .catch((e) => console.log('EVENTLOG: Error getting config for: ', e));
+        });
+      };
     }
     
     
