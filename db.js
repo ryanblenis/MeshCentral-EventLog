@@ -162,6 +162,7 @@ module.exports.CreateDB = function(meshserver) {
                   }
               });
           };
+          obj.checkForDefault();
     });  
     } else { // use NeDb
         Datastore = require('nedb');
@@ -320,9 +321,10 @@ module.exports.CreateDB = function(meshserver) {
               }
           });
       };
+      obj.checkForDefault();
     }
     
-    obj.checkForDefault();
+    
     
     return obj;
 }
