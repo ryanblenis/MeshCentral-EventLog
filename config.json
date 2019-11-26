@@ -1,0 +1,18 @@
+{
+  "name": "Event Log",
+  "shortName": "eventlog",
+  "version": "0.0.13",
+  "author": "Ryan Blenis",
+  "description": "An event log plugin to view, capture, and store event logs for each endpoint",
+  "hasAdminPanel": true,
+  "homepage": "https://github.com/ryanblenis/MeshCentral-EventLog",
+  "changelogUrl": "https://raw.githubusercontent.com/ryanblenis/MeshCentral-EventLog/master/changelog.md",
+  "configUrl": "https://raw.githubusercontent.com/ryanblenis/MeshCentral-EventLog/master/config.json",
+  "downloadUrl": "https://github.com/ryanblenis/MeshCentral-EventLog/archive/master.zip",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ryanblenis/MeshCentral-EventLog.git"
+  },
+  "versionHistoryUrl": "https://api.github.com/repos/ryanblenis/MeshCentral-EventLog/tags",
+  "meshCentralCompat": ">=0.4.4-w"
+}
