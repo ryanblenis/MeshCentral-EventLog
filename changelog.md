@@ -4,7 +4,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Known Issues]
-- None. Please feel free to submit an issue via GitHub if you find anything.
+- None. Please feel free to submit an issue via [GitHub](https://github.com/ryanblenis/MeshCentral-EventLog) if you find anything.
+
+## [0.0.13] - 2019-11-25
+### Added
+- Admin interface
+- Ability to create different event log collection sets and assign them to nodes/meshes
+- Support for MeshCentral GUI plugin installation / upgrades
+### Changed
+- The way event types are stored in the database. Now Integer (e.g. 3), was String (e.g. "Info")
 
 ## [0.0.12] - 2019-10-28
 ### Fixed
