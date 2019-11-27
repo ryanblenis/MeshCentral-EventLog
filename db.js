@@ -11,6 +11,7 @@ var Datastore = null;
 
 module.exports.CreateDB = function(meshserver) {
     var obj = {};
+    obj.dbVersion = 2;
     const expireLogEntrySeconds = (60 * 60 * 24 * 30); // 30 days
     if (meshserver.args.mongodb) { // use MongDB
       require('mongodb').MongoClient.connect(meshserver.args.mongodb, { useNewUrlParser: true, useUnifiedTopology: true }, function (err, client) {
@@ -162,6 +163,35 @@ module.exports.CreateDB = function(meshserver) {
                   }
               });
           };
+          obj.updateDBVersion = function(new_version) {
+            return obj.settingsFile.updateOne({type: "db_version"}, { $set: {version: new_version} }, {upsert: true});
+          };
+          
+          obj.getDBVersion = function() {
+              return new Promise(function(resolve, reject) {
+                  obj.settingsFile.find( { type: "db_version" } ).project( { _id: 0, version: 1 } ).toArray(function(err, vers){
+                      if (vers.length == 0) resolve(1);
+                      else resolve(vers[0]['version']);
+                  });
+              });
+          };
+          
+          obj.getDBVersion().then(function(current_version){
+              if (current_version < 2) {
+                  var etsi = ['LogAlways', 'Critical', 'Error', 'Warning', 'Info', 'Verbose'];
+                  obj.eventsFile.find().sort({ TimeCreated: -1 }).toArray(function (err, events) {
+                      for (let [i, e] of Object.entries(events)) {
+                          if (e.LevelDisplayName != '') {
+                              e.Level = etsi.indexOf(e.LevelDisplayName);
+                              delete e.LevelDisplayName;
+                              obj.eventsFile.updateOne({_id: e._id}, {$set: e, $unset: {LevelDisplayName: ""} });
+                          }
+                      }
+                  });
+                  
+                  obj.updateDBVersion(2);
+              }
+          });
           obj.checkForDefault();
     });  
     } else { // use NeDb
@@ -321,10 +351,44 @@ module.exports.CreateDB = function(meshserver) {
               }
           });
       };
+      
+      obj.updateDBVersion = function(new_version) {
+        return new Promise(function(resolve, reject) {
+            obj.settingsFile.update({type: "db_version"}, { $set: {version: new_version} }, {upsert: true}, function(err, upDocs) {
+                if (err) reject(err);
+                resolve(upDocs);
+            });
+        });
+      };
+      
+      obj.getDBVersion = function() {
+        return new Promise(function(resolve, reject) {
+            obj.settingsFile.find( { type: "db_version" }, { _id: 0, version: 1 } ).exec((err, docs) => {
+              if (docs.length == 0) { resolve(1); }
+              else resolve(docs[0]['version']);
+            });
+        });
+      };
+      
+      obj.getDBVersion().then(function(current_version){
+          if (current_version < 2) {
+              var etsi = ['LogAlways', 'Critical', 'Error', 'Warning', 'Info', 'Verbose'];
+              obj.eventsFile.find().sort({ TimeCreated: -1 }).exec(function (err, events) {
+                  for (let [i, e] of Object.entries(events)) {
+                      if (e.LevelDisplayName != '') {
+                          e.Level = etsi.indexOf(e.LevelDisplayName);
+                          delete e.LevelDisplayName;
+                          obj.eventsFile.update({_id: e._id}, {$set: e, $unset: {LevelDisplayName: ""} });
+                      }
+                  }
+              });
+              
+              obj.updateDBVersion(2);
+          }
+      });
+      
       obj.checkForDefault();
     }
-    
-    
     
     return obj;
 }

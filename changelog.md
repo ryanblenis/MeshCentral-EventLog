@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## [Known Issues]
 - None. Please feel free to submit an issue via [GitHub](https://github.com/ryanblenis/MeshCentral-EventLog) if you find anything.
 
+## [0.0.14] - 2019-11-27
+### Fixed
+- Upon upgrading from 0.0.12 to 0.0.13, history entries were lost. They are now brought back.
+
 ## [0.0.13] - 2019-11-25
 ### Added
 - Admin interface

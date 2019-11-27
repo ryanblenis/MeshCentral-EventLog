@@ -154,7 +154,14 @@ module.exports.eventlog = function (parent) {
           var div = document.createElement('div');
           div.classList.add('eventLogRow');
           div.classList.add('logType'+e.LogName);
-          for (let [k, v] of Object.entries(e)) {
+          const eo = {
+            'Level': e.Level,
+            'TimeCreated': e.TimeCreated,
+            'ProviderName': e.ProviderName,
+            'Message': e.Message,
+            'Id': e.Id
+          }
+          for (let [k, v] of Object.entries(eo)) {
             skip = false;
             switch (k) {
               case 'nodeid':
