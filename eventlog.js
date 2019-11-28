@@ -354,7 +354,7 @@ module.exports.eventlog = function (parent) {
     
     obj.onDeviceRefreshEnd = function(nodeid, panel, refresh, event) {
       pluginHandler.registerPluginTab(pluginHandler.eventlog.registerPluginTab);
-      QH('p19pages', pluginHandler.eventlog.on_device_page());
+      QA('p19pages', pluginHandler.eventlog.on_device_page());
       if (typeof pluginHandler.eventlog.livelog == 'undefined') { pluginHandler.eventlog.livelog = null; }
       if (pluginHandler.eventlog.livelog != null) { pluginHandler.eventlog.livelog.Stop(); pluginHandler.eventlog.livelog = null; }
       QH('pluginEventLog', ''); pluginHandler.eventlog.livelog = null;
