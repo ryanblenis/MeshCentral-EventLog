@@ -60,6 +60,8 @@ module.exports.eventlog = function (parent) {
     
     // called to notify the web server that there is a new tab in town
     obj.registerPluginTab = function() {
+      if (currentNode.osdesc.toLowerCase().indexOf('windows') === -1) return { tabId: null, tabTitle: null };
+      
       return {
         tabTitle: "Event Log",
         tabId: "pluginEventLog"
@@ -353,8 +355,7 @@ module.exports.eventlog = function (parent) {
     }
     
     obj.onDeviceRefreshEnd = function(nodeid, panel, refresh, event) {
-      pluginHandler.registerPluginTab(pluginHandler.eventlog.registerPluginTab);
-      QA('p19pages', pluginHandler.eventlog.on_device_page());
+      pluginHandler.registerPluginTab(pluginHandler.eventlog.registerPluginTab());
       if (typeof pluginHandler.eventlog.livelog == 'undefined') { pluginHandler.eventlog.livelog = null; }
       if (pluginHandler.eventlog.livelog != null) { pluginHandler.eventlog.livelog.Stop(); pluginHandler.eventlog.livelog = null; }
       QH('pluginEventLog', ''); pluginHandler.eventlog.livelog = null;
