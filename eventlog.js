@@ -505,7 +505,7 @@ module.exports.eventlog = function (parent) {
             } else {
                 obj.db.updateConfig(command.id, opts)
                 .then((d) => {
-                  selected = d.insertedId;
+                  selected = d.insertedId || command.id;
                   return obj.db.getAllConfigSets();
                 })
                 .then((d) => {

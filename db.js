@@ -256,7 +256,7 @@ module.exports.CreateDB = function(meshserver) {
                         resolve(newDocs);
                     });  
                 } else {
-                    obj.settingsFile.update({_id: id}, { $set: args }, {upsert: true}, function(err, upDocs) {
+                    obj.settingsFile.update({_id: id}, { $set: args }, {upsert: true, returnUpdatedDocs: true}, function(err, numDocs, upDocs) {
                         if (err) reject(err);
                         upDocs.insertedId = upDocs._id;
                         resolve(upDocs);
@@ -306,7 +306,11 @@ module.exports.CreateDB = function(meshserver) {
             });
         }
         obj.checkConfigAuth = function(uid) {
-          return obj.settingsFile.count( { type: "configSet", uid: uid } );
+          return new Promise(function(resolve, reject) {
+              obj.settingsFile.count( { type: "configSet", uid: uid } , function(err, count){
+                  resolve(count);
+              });
+          });
         }
         obj.getConfigFor = function(nodeId, meshId) {
           return new Promise(function(resolve, reject) {

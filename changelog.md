@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## [Known Issues]
 - None. Please feel free to submit an issue via [GitHub](https://github.com/ryanblenis/MeshCentral-EventLog) if you find anything.
 
+## [0.0.17] - 2019-12-02
+### Fixed
+- Config Comparisons failing for NeDB users fixed
+- Saving event log configuration sets for NeDB users no longer breaks
+- Config set reverting to "Default" after update with MongoDB (now stays current value)
+
 ## [0.0.16] - 2019-12-02
 ### Added
 - Better support for plugin tabs (tab now does not display for non-Windows devices)
