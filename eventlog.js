@@ -332,7 +332,7 @@ module.exports.eventlog = function (parent) {
                 if (pluginHandler.eventlog.livelog != null) {
                   pluginHandler.eventlog.livelog.Stop(); 
                   pluginHandler.eventlog.livelog = null; 
-                  QH('pluginEventLog', '');
+                  try { QH('pluginEventLog', ''); } catch(e) { }
                 }
                 break;
             case 3:
@@ -358,7 +358,7 @@ module.exports.eventlog = function (parent) {
       pluginHandler.registerPluginTab(pluginHandler.eventlog.registerPluginTab());
       if (typeof pluginHandler.eventlog.livelog == 'undefined') { pluginHandler.eventlog.livelog = null; }
       if (pluginHandler.eventlog.livelog != null) { pluginHandler.eventlog.livelog.Stop(); pluginHandler.eventlog.livelog = null; }
-      QH('pluginEventLog', ''); pluginHandler.eventlog.livelog = null;
+      try { QH('pluginEventLog', ''); } catch(e) { } pluginHandler.eventlog.livelog = null;
       if (!pluginHandler.eventlog.livelog) {
           pluginHandler.eventlog.livelognode = currentNode;
           // Setup a mesh agent files
