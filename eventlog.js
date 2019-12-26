@@ -386,9 +386,12 @@ module.exports.eventlog = function (parent) {
       meshserver.send({ action: 'plugin', plugin: 'eventlog', pluginaction: 'getNodeHistory', nodeid: nodeid, meshid: meshid });
     };
     
-    obj.hook_agentCoreIsStable = function(args) {
-        var myparent = args[0], grandparent = args[1];
+    obj.hook_agentCoreIsStable = function(myparent, grandparent) {
         //console.log(new Date().toLocaleString()+' PLUGIN: eventlog: Running hook_agentCoreIsStable', myparent.dbNodeKey);
+        if (grandparent == null) { // detect old style call with single argument, backward compat, to be removed in the future.
+            grandparent = myparent[1];
+            myparent = myparent[0];
+        }
         myparent.send(JSON.stringify({ 
             action: 'plugin', 
             pluginaction: 'serviceCheck', 

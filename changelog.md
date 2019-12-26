@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## [Known Issues]
 - None. Please feel free to submit an issue via [GitHub](https://github.com/ryanblenis/MeshCentral-EventLog) if you find anything.
 
+## [0.0.19] - 2019-12-26
+### Fixed
+- Update plugin hook call to be compatible with 0.4.6-p+
+
 ## [0.0.18] - 2019-12-15
 ### Fixed
 - Safety check the existence of the plugin page for non-windows devices (was producing an error in javascript)
