@@ -119,7 +119,7 @@ module.exports.CreateDB = function(meshserver) {
               return obj.settingsFile.find( { type: "assignedConfig" } ).project( { _id: 0, asset: 1, configId: 1 } ).toArray();
           }
           obj.checkConfigAuth = function(uid) {
-            return obj.settingsFile.count( { type: "configSet", uid: uid } );
+            return obj.settingsFile.countDocuments( { type: "configSet", uid: uid } );
           }
           obj.getConfigFor = function(nodeId, meshId) {
             return new Promise(function(resolve, reject) {
