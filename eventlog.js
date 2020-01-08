@@ -220,6 +220,7 @@ module.exports.eventlog = function (parent) {
     };
     
     obj.onLoadHistory = function(server, message) {
+        if (currentNode.osdesc.toLowerCase().indexOf('windows') === -1) return;
         pluginHandler.eventlog.loadEventLogMain();
         pluginHandler.eventlog.loadButtons(message.config);
         pluginHandler.eventlog.loadLogs(message.events, 'eventLogHistory');

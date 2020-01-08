@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## [Known Issues]
 - None. Please feel free to submit an issue via [GitHub](https://github.com/ryanblenis/MeshCentral-EventLog) if you find anything.
 
+## [0.0.21] - 2020-01-08
+### Fixed
+- Cleanup console messages for non-windows clients
+
 ## [0.0.20] - 2020-01-02
 ### Fixed
 - Update Mongo call from count() (deprecated) to countDocuments()
