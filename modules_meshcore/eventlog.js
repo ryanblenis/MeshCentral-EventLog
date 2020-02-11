@@ -56,6 +56,28 @@ var getlogCallback = function (output) {
     }
 };
 
+var pushTmpFile = function(fn) {
+    var fns = getTmpFileNames();
+    fns.push({ name: fn, time:  Math.floor(new Date() / 1000) })
+    db.Put('pluginEventLog_tmpfns', fns);
+    dbg('Pushed tmp ' + fn)
+};
+var popTmpFile = function(fn) { // remove tmp file and other (possibly orphaned) files older than 10 sec
+    var now = Math.floor(new Date() / 1000);
+    var fns = getTmpFileNames();
+    var newFns = [];
+    fns.forEach(function(t) {
+        dbg('t is ' + JSON.stringify(t))
+        if ( t.name == fn || ((now - t.time) > 10)) {
+            try { require('fs').unlinkSync(t.name); } catch(e) { }
+            dbg('popped tmp ' + fn)
+        } else {
+            newFns.push(t); dbg('pushing ' + JSON.stringify(t))
+        }
+    });
+    dbg('tmpfns written ' + newFns)
+    db.Put('pluginEventLog_tmpfns', newFns);
+};
 var runPwshCollector = function(func, passedParams) {
     const defaultParams = {
         fromLog: 'Application',
@@ -96,6 +118,7 @@ var runPwshCollector = function(func, passedParams) {
       convertToJsonText = " | convertTo-JSON -Compress"
     }
     var ret = {};
+    pushTmpFile(fileName);
     ret.child = require('child_process').execFile("C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",["-command \""+sinceTimePre+"Get-WinEvent -FilterHashTable @{"+sinceTimeStr+"LogName='"+params.fromLog.split(',').join("','")+"'; Level="+entryTypeCodes.join(',')+"} -MaxEvents "+params.num+" | Select-Object LogName, Level, TimeCreated, ProviderName, Message, Id "+convertToJsonText+" | Out-File "+fileName+" -Encoding UTF8\""]);
     ret.child.stdout.str = ''; ret.child.stdout.on('data', function (c) { this.str += c.toString(); });
     ret.child.stderr.str = ''; ret.child.stderr.on('data', function (c) { this.str += c.toString(); });
@@ -112,7 +135,7 @@ var runPwshCollector = function(func, passedParams) {
                 o.stdout = o.stdout.replace(/[^\x20-\x7E]/g, ''); 
                 func(o);
             }
-            require('fs').unlinkSync(fileName);
+            popTmpFile(fileName);
             dbg('Running powershell: '+sinceTimePre+"Get-WinEvent -FilterHashTable @{"+sinceTimeStr+"LogName='"+params.fromLog.split(',').join("','")+"'; Level="+entryTypeCodes.join(',')+"} -MaxEvents "+params.num+" | Select-Object LogName, Level, TimeCreated, ProviderName, Message, Id "+convertToJsonText+" | Out-File "+fileName);
         } catch (e) {
             dbg('Powershell run error: '+e.stack);
@@ -286,6 +309,15 @@ function getEventLogConfig() {
         cfg = JSON.parse(cfg);
     } catch (e) { return getDefaultConfig(); }
     return cfg;
+}
+
+function getTmpFileNames() {
+    var fns = db.Get('pluginEventLog_tmpfns');
+    if (fns == '' || fns == null) return [];
+    try {
+        fns = JSON.parse(fns);
+    } catch (e) { return []; }
+    return fns;
 }
 
 function getDefaultConfig() {
