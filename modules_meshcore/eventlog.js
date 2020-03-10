@@ -144,6 +144,36 @@ var runPwshCollector = function(func, passedParams) {
     });
 };
 
+var runPwshTest = function(func) {
+    dbg('pwsh test function');
+    var fileRand = Math.random().toString(32).replace('0.', '');
+    var fileName = 'psout'+fileRand+'.txt';
+    pushTmpFile(fileName);
+    var ret = {};
+    ret.child = require('child_process').execFile("C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",["-command \"$PSVersionTable.PSVersion.Major | Out-File "+fileName+" -Encoding UTF8\""]);
+    ret.child.stdout.str = ''; ret.child.stdout.on('data', function (c) { this.str += c.toString(); });
+    ret.child.stderr.str = ''; ret.child.stderr.on('data', function (c) { this.str += c.toString(); });
+    //ret.child.on('exit', func(ret));
+    ret.child.on('exit', function (code) {
+        var o = {};
+        o.stdout = this.stdout.str;
+        o.stderr = this.stderr.str;
+        try {
+            // buffer the output to text and strip nasty characters
+            o.stdout = require('fs').readFileSync(fileName, 'utf8').toString();
+            if (o.stdout) {
+                o.stdout = o.stdout.trim();
+                o.stdout = o.stdout.replace(/[^\x20-\x7E]/g, ''); 
+                func(o);
+            }
+            popTmpFile(fileName);
+        } catch (e) {
+            dbg('Powershell run error: '+e.stack);
+        }
+        
+    });
+};
+
 var gatherlogsCallback = function(output) {
     mesh = require('MeshAgent');
     var db = require('SimpleDataStore').Shared();
@@ -291,6 +321,15 @@ function consoleaction(args, rights, sessionid, parent) {
           break;
         }
         case 'setConfigBlob': {
+            runPwshTest(function (output) { 
+                var version = parseInt(output.stdout);
+                if (version <= 2) {
+                    dbg('Plugin EventLog disabled on endpoint. Powershell version not capable');
+                    periodicEventLogTimer = null;
+                } else {
+                    dbg('Powershell version is >= 3. Continuing as planned.');
+                }
+            });
             try {
                 var db = require('SimpleDataStore').Shared();
                 var cfg = args.cfg;

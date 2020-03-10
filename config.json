@@ -1,7 +1,7 @@
 {
   "name": "Event Log",
   "shortName": "eventlog",
-  "version": "0.0.22",
+  "version": "0.0.23",
   "author": "Ryan Blenis",
   "description": "An event log plugin to view, capture, and store event logs for each endpoint",
   "hasAdminPanel": true,
