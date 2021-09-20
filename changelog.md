@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## [Known Issues]
 - None. Please feel free to submit an issue via [GitHub](https://github.com/ryanblenis/MeshCentral-EventLog) if you find anything.
 
+## [0.0.24] - 2021-09-19
+### Fixed
+- Compatibility with MeshCentral > 0.9.7
+
 ## [0.0.23] - 2020-03-10
 ### Fixed
 - Detect PowerShell major version <= 2 and disable periodic updates for endpoint (requires 3+)

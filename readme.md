@@ -1,8 +1,8 @@
 
 # MeshCentral-EventLog
 
-*Current Version: 0.0.23
-Released: 2020-03-10*
+*Current Version: 0.0.24
+Released: 2021-09-19*
 
 Initially conceived as a proof of concept plugin for the [MeshCentral2](https://github.com/Ylianst/MeshCentral) Project to introduce extensibility into the project without requiring the MeshCentral2 project to incorporate everyone's requested changes into the main project, yet allow it to be accomplished by others. In creating this plugin, we're introducing the appropriate hooks into MeshCentral2 to allow extensibility to anyone who can write a plugin, while trying to modify the core project as little as possible.
 

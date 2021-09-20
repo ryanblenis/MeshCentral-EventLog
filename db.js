@@ -87,14 +87,22 @@ module.exports.CreateDB = function(meshserver) {
               args.type = "configSet";
               args.uid = Math.random().toString(32).replace('0.', '');
               if (id == '_new') return obj.settingsFile.insertOne(args);
-              id = require('mongodb').ObjectID(id);
+              if (typeof require('mongodb').ObjectID == 'function') {
+                  id = require('mongodb').ObjectID(id);
+              } else {
+                  id = require('mongodb').ObjectId(id);
+              }
               return obj.settingsFile.updateOne({_id: id}, { $set: args }, {upsert: true});
           };
           obj.getAllConfigSets = function() {
               return obj.settingsFile.find({type: "configSet"}).project({type: 0}).toArray();
           };
           obj.deleteConfigSet = function(id) {
-              id = require('mongodb').ObjectID(id);
+              if (typeof require('mongodb').ObjectID == 'function') {
+                  id = require('mongodb').ObjectID(id);
+              } else {
+                  id = require('mongodb').ObjectId(id);
+              }
               return obj.settingsFile.deleteOne({_id: id});
           };
           obj.assignConfig = function(configId, sel) {
